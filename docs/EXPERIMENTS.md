@@ -15,3 +15,14 @@
 性能报告应同时保留模型、shape、数据类型、USB 连接速率、预热次数、样本量和误差，不把 1x4 ReLU 的毫秒数外推为通用推理速度。功耗或能效需要额外测量，不能从延迟推算。
 
 当前优先顺序：第二台实体 arm64 Mac 复现 → 许可证和第三方来源审查 → 签名/公证路径 → 更广模型兼容性 → 受控 USB 2/3 和功耗实验。自定义 Myriad 内核编译器和现代大模型不在已验证能力内。
+
+## 2026 年适合继续折腾的用途
+
+1. **USB 设备考古**：比较 bootloader `03e7:2485` 与 runtime `03e7:f63b` 的枚举、速度、描述符和生命周期；把保存的十六进制描述符做离线解析、畸形输入测试和差异报告。
+2. **协议观察**：收集 XLink/MVNC 的 stream、FIFO、trigger、read/write、close/reset 事件，建立事件计数与图大小、请求深度、重启阶段的对照表。它适合做 runtime 事件考古，不等于 USB packet capture。
+3. **性能实验室**：做请求深度、同步/异步、静态 shape、主机/设备预处理、USB 2/3 链路和外部功耗的 A/B；保存启动、推理、P50/P95、吞吐、温度和电能，不把小 ReLU 的延迟外推成 TOPS。
+4. **算子兼容性地图**：继续增加 pooling、concat、broadcast、reshape、transpose、量化和边界 shape 的静态 IR fixture；每项用独立标量参考，保留编译拒绝证据，形成 NCS2 可运行子集。
+5. **macOS 原生推理服务**：让 Swift、Python 或其他客户端只接触版本化 JSON-lines worker；旧 runtime 固定在 arm64 进程中，现代应用不链接旧 OpenVINO ABI，也不需要 x86_64 或 Rosetta。
+6. **离线信号实验**：用 WAV、合成时序、传感器日志、音频特征或小型控制信号测试张量布局、数值误差和恢复机制；不需要摄像头，也不把 fixture 冒充成训练好的分类器。
+
+最值得开源的是这层工具链和证据格式：`ncs2 usb`、离线 descriptor parser、`check --json`、worker schema、IR fixture catalog、性能报告和复现脚本。固件、runtime 二进制、第三方来源和许可证仍应单独审查后再决定是否发布。

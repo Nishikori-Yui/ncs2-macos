@@ -13,7 +13,7 @@
 
 ## 本轮证据
 
-- USB 描述符离线解析器加入后 141 项非硬件整合回归全部通过；包括客户端、源码导出、严格 USB descriptor 解析及 soak 数值/RSS/监督器/有限重试测试，后者包含真实 SIGTERM 忽略进程的强制回收。
+- USB 描述符离线解析器加入后 141 项非硬件整合回归通过；随后加入纯 arm64 依赖清单、x86_64/universal 拒绝及 CLI JSON 输出测试，当前完整回归为 144 项通过。覆盖客户端、源码导出、严格 USB descriptor 解析及 soak 数值/RSS/监督器/有限重试测试，后者包含真实 SIGTERM 忽略进程的强制回收。
 - 性能：results/perf-20261111-165442-c6ec393c/report.json（3 轮×5 模式，每项 5 warmup+40 measured），529,200 输出校验。
 - 大卷积：results/perf-20261111-173115-db71dab7/report.json，1,656,000 输出校验。
 - 最终性能故意扰动：results/perf-20261111-173144-21e08c60/report.json，4 模式 validation 失败，均 hardware_executed=true。
@@ -24,6 +24,8 @@
 - 长跑：results/worker-soak-20261111-180642-c04d3699/report.json，同一 worker 120.002 秒、71,703 次推理，65 组输入，所有输出正确；RSS 12 次采样为 44,957,696～45,039,616 bytes，3 次正常重启退出 0。随后 SIGKILL 后 5 次启动均未 ready，整项实验 failed；没有声称进程强杀后可立即自动恢复。首次同类失败也保留在 results/worker-soak-20261111-180011-73a4672d/report.json。详见 WORKER_STABILITY.md。
 - 恢复扩展：独立 recovery-only 与完整默认流程均在第 6 次尝试成功，ready 分别为强杀后 16.575/16.663 秒；前 5 次 USB 为 booted f63b，第 6 次为 bootloader 2485。默认预算改为 10 次，每次失败间隔 3 秒。完整新报告 results/worker-soak-20261111-183417-b6f48cce/report.json：120.001 秒、73,569 次 soak 推理，全阶段 73,574 次、2,648,664 输出核对，正常重启与强杀恢复均通过。仅证明本机两次有界恢复观测，不等于物理拔插恢复。
 - 全新依赖复现：最终源码快照报告 `results/reproduce-physical-verified-20261111/report.json` 的 8 个阶段全部退出码为 0；全新源码快照和依赖、离线锁定校验、原生 arm64 构建、架构审计、12 项 IR export/reload、141 项非硬件回归与源码导出均通过。报告标记 `fresh-source-and-dependencies-on-current-host`、`hardware_executed=false`。此前的 `curl 18` / early EOF 和 DNS 解析失败均保留；有界重试后完成复现。
+- 新增 `./ncs2 check --json`：本机实测 9 个非系统 Mach-O 全为 arm64，逐项输出依赖边和 SHA-256；外部绝对路径以 basename 表示。三项非硬件回归覆盖递归依赖清单、x86_64/universal 架构拒绝及真实 launcher 的单一 JSON 输出和 notebook 写入；动态库自己的安装名不作为依赖边。
+- 清单扩展后的全新联网复现未完成：`results/reproduce-architecture-inventory-20261111/report.json` 在 fetch-online 遇到 DNS 失败；联网重试 `results/reproduce-architecture-inventory-retry-20261111/report.json` 遇到 early EOF，后续两次 fetch 因 shallow.lock 存在失败。两项均保留 failed，不声称此版本通过全新联网重建；上面的 141 项完整复现属于较早源码快照。
 - 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
 - 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；当前公开仓库的自托管 runner 数量为 0，未触发 workflow，也未做第二台 Mac 验收。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。

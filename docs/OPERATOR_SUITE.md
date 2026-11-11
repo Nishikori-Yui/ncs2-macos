@@ -48,6 +48,6 @@ results/suite-20261111-155315-1a66e4c5/report.json
 
 导出验证：results/suite-20261111-154520-68e64727/report.json
 负向验证：results/suite-20261111-155038-dd3813fc/report.json
-本机测试：python3 -m unittest discover -s tests -v，共 10 项通过。
+当前整合的非硬件回归共 144 项通过，覆盖此套件、独立参考、IR 读写、USB descriptor parser、架构审计清单、CLI JSON 标准输出、客户端、源码导出和 worker 恢复监督器。该总数是后续整合回归，不是早期这个算子套件单独运行的测试计数。
 
 完整结果目录和操作日志只保留在本机；本摘要不包含个人路径或序列号。

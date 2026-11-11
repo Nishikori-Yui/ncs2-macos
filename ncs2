@@ -8,7 +8,7 @@ case "$action" in
   fetch) exec /bin/zsh "$logger" "校验/准备锁定依赖" python3 "$ROOT_DIR/scripts/bootstrap.py" "$@" ;;
   build) exec /bin/zsh "$logger" "构建 macOS arm64 runtime 和工具" /bin/zsh "$ROOT_DIR/scripts/build_runtime.sh" "$@" ;;
   build-probe) exec /bin/zsh "$logger" "编译 arm64 probe" /bin/zsh "$ROOT_DIR/scripts/build_probe.sh" "$@" ;;
-  check) exec /bin/zsh "$logger" "验证 arm64 依赖闭包" /bin/zsh "$ROOT_DIR/scripts/check_arm64.sh" "$@" ;;
+  check) exec /bin/zsh "$logger" --stream "验证 arm64 依赖闭包" /bin/zsh "$ROOT_DIR/scripts/check_arm64.sh" "$@" ;;
   reproduce) exec /bin/zsh "$logger" "从源码快照和全新依赖复现 macOS 工具链" python3 "$ROOT_DIR/scripts/reproduce_macos.py" "$@" ;;
   usb) exec /bin/zsh "$logger" "读取 USB 描述符" python3 "$ROOT_DIR/read_ncs2_usb.py" "$@" ;;
   suite) exec /bin/zsh "$logger" "算子与 IR 实验套件" python3 "$ROOT_DIR/scripts/run_suite.py" "$@" ;;
@@ -26,7 +26,7 @@ case "$action" in
     print -- "  fetch [--offline]  Fetch pinned inputs, or verify local files only"
     print -- "  build              Configure/build pinned runtime and probe"
     print -- "  build-probe        Recompile the native C++ tools"
-    print -- "  check              Verify non-system Mach-O dependencies are arm64"
+    print -- "  check [--json]     Verify arm64 dependencies; optional JSON inventory"
     print -- "  reproduce [options] Fresh online inputs/build and offline tests; no USB"
     print -- "  usb [--show-serial] Read descriptors; serial hidden by default"
     print -- "      --parse-configuration-hex HEX|@PATH Parse saved config offline"

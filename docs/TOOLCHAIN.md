@@ -16,6 +16,10 @@ macOS arm64 process
 
 The compatibility runtime is old because Intel removed MYRIAD support from newer OpenVINO releases. The host-facing layer remains current and small: native macOS process checks, explicit paths, reproducible probes, architecture validation, and logged experiments.
 
+The upstream boundary is explicit: OpenVINO's supported-device documentation says support for Intel Neural Compute Stick 2 / Movidius Myriad X was cancelled in 2023.0 and directs users to the 2022.3 LTS line for MYRIAD/HDDL. The current 2026 documentation describes the supported device families as CPU, GPU and NPU. This repository therefore treats OpenVINO 2022.3.2 as a compatibility island and keeps the 2026-facing API in the native macOS wrapper. It does not claim that installing the latest OpenVINO package will discover NCS2.
+
+References: [2024 supported devices](https://docs.openvino.ai/2024/about-openvino/compatibility-and-support/supported-devices.html), [2023 supported devices](https://docs.openvino.ai/2023.3/openvino_docs_OV_UG_supported_plugins_Supported_Devices.html), [2026 system requirements](https://docs.openvino.ai/2026/about-openvino/release-notes-openvino/system-requirements.html).
+
 ## Rebuild inputs
 
 - OpenVINO source: `releases/2022/3`, commit `6fbc44f307068367bef029f760e26058147b6d1b`.
@@ -30,7 +34,7 @@ Exact download URLs, archive SHA-256 values, extracted-file SHA-256 values, and 
 
 `scripts/build_runtime.sh` contains the tested CMake configuration. `THREADING=SEQ` makes the earlier automatic fallback from missing TBB explicit. `CMAKE_POLICY_VERSION_MINIMUM=3.5` lets the old project configure with the locally tested CMake 4.4.2. `ENABLE_PKGCONFIG_GEN=OFF` avoids old pkg-config generation failing on paths containing spaces. These are compatibility settings, not a promise that all future CMake/macOS releases will work.
 
-The MYRIAD bundle is named `libopenvino_intel_myriad_plugin.so` even on macOS; `file`/`lipo` verify its Mach-O arm64 format. The probe uses an explicit `plugins.xml` path. The launcher derives paths from its own location, so it can run outside the project directory. Moving the already-built checkout can invalidate CMake caches/rpaths; rebuild after relocation.
+The MYRIAD bundle is named `libopenvino_intel_myriad_plugin.so` even on macOS; `file`/`lipo` verify its Mach-O arm64 format. `./ncs2 check` recursively audits non-system dependencies and rejects universal or x86_64 slices. `./ncs2 check --json` emits one schema-versioned JSON object on stdout; logger status goes to stderr. It includes architecture, dependency-edge and SHA-256 data for the pinned checkout layout. External paths and absolute non-system install names are reduced to basenames; these display names may collide for arbitrary directory trees. It audits linked files, not every possible future dynamic load or Apple's shared-cache libraries. The probe uses an explicit `plugins.xml` path. The launcher derives paths from its own location, so it can run outside the project directory. Moving the already-built checkout can invalidate CMake caches/rpaths; rebuild after relocation.
 
 The runtime supplies firmware for MYRIAD; the descriptor reader does not boot firmware. USB/PCIe firmware are both build inputs because this upstream plugin expects both; this project tests USB NCS2 only.
 
@@ -56,13 +60,11 @@ Public source should contain the probes, scripts, documentation, build configura
 
 The experiment log remains useful as an engineering notebook. Before publishing, replace it with a redacted example log and keep the complete local copy outside version control.
 
-## Next experiments
+## Current status and next experiments
 
-1. Synthetic IR suite is implemented: 12 cases, 11 hardware passes, one standalone FakeQuantize compile rejection. Extend coverage using the same independent-reference checks.
-2. Extend the existing ReLU latency runner to larger workloads and controlled throughput experiments.
-3. USB lifecycle sampling is implemented, including an active compiled-network window. `NCS2_LOG_LEVEL=LOG_DEBUG ./ncs2 smoke` also exposes fixed-runtime XLink stream, read/write, trigger, close and reset events; this is runtime logging, not a packet capture.
-4. Compare host-side arm64 preprocessing against device-side execution without involving cameras.
-5. Package the compatibility runtime as a documented local artifact rather than assuming a current OpenVINO package will discover NCS2 automatically.
+The camera-free IR suite, USB descriptor/lifecycle readers, XLink event collector, repeated throughput/preprocessing runner, WAV and synthetic time-series demos, and persistent Python/Swift worker are implemented. The suite has 12 IR fixtures: 11 execute and validate on MYRIAD; standalone FakeQuantize is retained as a compile-time rejection. Performance results cover several deterministic convolution sizes and request depths, with explicit timing boundaries. These measurements are not a power, USB saturation or broad-model benchmark.
+
+The next useful technical work is broader static IR coverage (pooling, concat, broadcast and shape variants) with independent references and retained compile failures, followed by controlled USB 2/3 and external power measurements. Separately, a second physical arm64 Mac, project-license decision, third-party redistribution review, and Developer ID signing/notarization are needed before calling this a releasable toolkit. The local runtime remains pinned to OpenVINO 2022.3.2; the current OpenVINO line does not automatically discover NCS2.
 
 
 Local copied runtimes now use relative loader paths and have passed relocation/hardware inference; see PACKAGING.md. The source build still has its original checkout-dependent paths.

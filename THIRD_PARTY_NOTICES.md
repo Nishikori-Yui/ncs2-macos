@@ -12,7 +12,9 @@ Primary compatibility references checked on 2026-11-11:
 
 ```text
 https://www.intel.com/content/www/us/en/support/articles/000093181/boards-and-kits.html
+https://docs.openvino.ai/2024/about-openvino/compatibility-and-support/supported-devices.html
 https://docs.openvino.ai/2023.3/openvino_docs_OV_UG_supported_plugins_Supported_Devices.html
+https://docs.openvino.ai/2026/about-openvino/release-notes-openvino/system-requirements.html
 https://github.com/openvinotoolkit/openvino/tree/6fbc44f307068367bef029f760e26058147b6d1b
 ```
 

@@ -35,6 +35,7 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 ./ncs2 fetch --offline # Verify the existing local source/cache without network
 ./ncs2 build           # Native arm64 runtime + MYRIAD + IR frontend + probe
 ./ncs2 check           # Recursive architecture check for non-system libraries
+./ncs2 check --json    # Machine-readable architectures, dependency graph and SHA-256
 ./ncs2 usb             # Descriptor read; serial numbers hidden by default
 ./ncs2 usb --parse-configuration-hex HEX  # Offline parse a saved descriptor; no USB
 ./ncs2 list            # MYRIAD device IDs
@@ -53,7 +54,7 @@ All commands except help append command, captured output, exit status, and durat
 
 `smoke`/`bench` target `MYRIAD` explicitly; they have no CPU fallback. Both check output shape/type, finite values, and absolute error ≤ 0.001. `bench` alternates two inputs and prints a `RESULT_JSON=` record. Its times cover synchronous `infer()` including host/runtime/USB overhead; input assignment, output checking, boot, and compilation are outside the timed requests. Compile/boot duration is reported separately.
 
-See [the verified results](docs/VERIFIED.md), [toolchain details](docs/TOOLCHAIN.md), and [camera-free experiment ideas](docs/EXPERIMENTS.md). The old runtime and new wrapper are separate layers; this is not a plugin for a current OpenVINO installation.
+See [the verified results](docs/VERIFIED.md), [toolchain details](docs/TOOLCHAIN.md), and [camera-free experiment ideas](docs/EXPERIMENTS.md). `check --json` emits one JSON document on stdout, with architecture, non-system dependency edges and hashes; log status goes to stderr. External paths and absolute non-system install names are represented by basename to omit machine-specific prefixes; these display names are not unique identifiers across arbitrary directory trees. The old runtime and new wrapper are separate layers; this is not a plugin for a current OpenVINO installation.
 
 USB access can vary between a sandboxed process and a normal macOS terminal. Run hardware probes from a normal terminal when libusb reports an empty list while `ioreg` still shows the device.
 
