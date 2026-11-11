@@ -9,7 +9,7 @@
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
 | 4 现代 API | schema 1/2 均有 Python/Swift 客户端和 native worker | 静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；两种语言实测 2→2、异形 2→1、1→2 |
 | 5 无摄像头样例 | WAV 读回→声谱→未训练小 CNN；合成时序异常分数 | 各 3 次实机核对；异常恰为样本 42/43；音频不是分类器 |
-| 6 repo 准备 | 可搬移本地 runtime、来源/许可记录、允许清单源码导出 | 新路径实机与 IR 加载通过；原创许可/第二台 Mac/发行签名仍待决定或验证 |
+| 6 repo 准备 | 可搬移本地 runtime、来源/许可记录、允许清单源码导出 | 新路径实机与 IR 加载通过；第三方来源盘点、许可选项和第二台 Mac 操作清单已发布；原创许可决定、跨机复现和发行签名仍待确认或验证 |
 
 ## 本轮证据
 
@@ -35,7 +35,9 @@
 - 多输入/输出前置实验：`./ncs2 multi-io` 在 MYRIAD 编译并运行两个 [1,4] f32 输入、加法和减法两个输出的固定图，23 次推理、184 个元素全部通过标量校验，日志见 `results/multi-io-development.md`。这是底层能力证据；worker schema 1 和现有客户端仍为单输入/输出。新增工具后完整非硬件回归 144 项通过，依赖审计覆盖 10 个 arm64 非系统 Mach-O。
 - schema 2 多张量 worker 初版：新增 `ncs2_multi_worker` 与 `ncs2_multi_client.py`，支持 1..32 个静态 f32 输入/输出，端口按 OpenVINO 顺序编号，每个方向合计不超过 16,384 元素。当轮完整非硬件回归 149 项通过，11 个非系统 Mach-O 全为 arm64。导出目录拒绝覆盖，重复导出失败后 XML/BIN 哈希不变。开发树及打包 runtime 均在 MYRIAD 验证 23 次、184 个元素通过，模型 SHA-256 `e42a842b3a274585b211202e3674484c49e821775922ae00c5f264988cbd0f72`；详细尝试、失败与输出在 `results/multi-worker-development.md` 和本地完整 notebook。当时只覆盖 2×2 图，非对称端口的后续验证见下文；schema 2 仍仅有 Python 客户端，Swift 与任意模型兼容性未验证。
 - 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
-- 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；当前公开仓库的自托管 runner 数量为 0，未触发 workflow，也未做第二台 Mac 验收。
+- 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；GitHub Actions API 当前没有该仓库的 workflow runs，也没有第二台 Mac 验收证据。
+- 第二台实体 Mac 验收步骤现有公开清单 `docs/SECOND_MAC_CHECKLIST.md`，包括全新来源复现、报告验收字段、可选硬件 smoke/soak 和只回传脱敏摘要的边界。GitHub Actions API 当前返回该仓库 `workflow_runs.total_count=0`；没有第二台机器的执行证据。
+- 项目许可证选择材料见 `docs/LICENSE_OPTIONS.md`：Apache-2.0 是工程建议、MIT 是备选；没有替所有者选定或创建根 `LICENSE`。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。
 
 ## 发行和扩展边界
@@ -69,8 +71,8 @@
 
 当前 Swift 批次已通过整合回归和实机验证；后续按以下项收尾：
 
-1. 在第二台实体 arm64 Mac 上复现锁定工具链；当前机器上的最新源码干净复建已经完成。
-2. 选择并提交项目原创代码许可证；来源盘点已完成，但二进制/固件再分发仍需单独审查。
+1. 在第二台实体 arm64 Mac 上按 `docs/SECOND_MAC_CHECKLIST.md` 复现锁定工具链；当前机器上的最新源码干净复建已经完成。
+2. 从 `docs/LICENSE_OPTIONS.md` 的选项中确认并提交项目原创代码许可证；来源盘点已完成，但二进制/固件再分发仍需单独审查。
 3. 如果决定发布编译产物，再做 Developer ID 签名、公证和搬移 runtime 的发行审查。
 
 本机可执行的收尾预计分 2–3 批推进。跨设备和发布决策依赖额外条件，不估算总工时；不把新增任意模型或算子作为无限延长首版收尾的前提。
