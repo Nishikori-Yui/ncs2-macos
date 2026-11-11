@@ -45,7 +45,11 @@ const std::vector<Case> cases{
     {"avgpool_2x2", "avgpool", {1,1,4,4}, {1,1,2,2}},
     {"maxpool_2x2", "maxpool", {1,1,4,4}, {1,1,2,2}},
     {"concat_channels", "concat", {1,1,2,3}, {1,2,2,3}},
-    {"broadcast_channels", "broadcast", {1,1,2,3}, {1,2,2,3}}
+    {"broadcast_channels", "broadcast", {1,1,2,3}, {1,2,2,3}},
+    {"avgpool_pad_2x2", "avgpool_pad", {1,1,3,3}, {1,1,2,2}},
+    {"maxpool_3x3", "maxpool_3x3", {1,1,5,5}, {1,1,2,2}},
+    {"concat_width", "concat_width", {1,1,2,3}, {1,1,2,6}},
+    {"broadcast_spatial", "broadcast_spatial", {1,1,1,3}, {1,1,2,3}}
 };
 
 std::string json_quote(const std::string& text) {
@@ -114,6 +118,16 @@ std::shared_ptr<ov::Model> model(const Case& c) {
     } else if (c.kind == "broadcast") {
         const auto shape=op::Constant::create(ov::element::i64,{4},std::vector<int64_t>{1,2,2,3});
         node=std::make_shared<op::Broadcast>(input,shape);
+    } else if (c.kind == "avgpool_pad") {
+        node=std::make_shared<ov::op::v1::AvgPool>(input,ov::Strides{2,2},ov::Shape{1,1},ov::Shape{1,1},ov::Shape{2,2},false);
+    } else if (c.kind == "maxpool_3x3") {
+        node=std::make_shared<ov::op::v1::MaxPool>(input,ov::Strides{2,2},ov::Shape{0,0},ov::Shape{0,0},ov::Shape{3,3});
+    } else if (c.kind == "concat_width") {
+        const auto negated=std::make_shared<op::Negative>(input);
+        node=std::make_shared<op::Concat>(ov::OutputVector{input->output(0),negated->output(0)},3);
+    } else if (c.kind == "broadcast_spatial") {
+        const auto shape=op::Constant::create(ov::element::i64,{4},std::vector<int64_t>{1,1,2,3});
+        node=std::make_shared<op::Broadcast>(input,shape);
     } else if (c.kind == "fq") {
         const auto low=op::Constant::create(ov::element::f32,{},std::vector<float>{-1});
         const auto high=op::Constant::create(ov::element::f32,{},std::vector<float>{1});
@@ -139,20 +153,46 @@ std::vector<float> input_values(const Case& c, size_t pass) {
 // No OpenVINO evaluate(), CPU plugin, or tensor library in this reference.
 std::vector<double> reference(const Case& c,const std::vector<float>& x) {
     std::vector<double> y(elements(c.output));
-    if (c.kind=="avgpool" || c.kind=="maxpool") {
-        for(size_t row=0;row<2;++row) for(size_t col=0;col<2;++col) {
-            double value=c.kind=="avgpool" ? 0.0 : -std::numeric_limits<double>::infinity();
-            for(size_t dy=0;dy<2;++dy) for(size_t dx=0;dx<2;++dx) {
-                const double sample=x[(row*2+dy)*4+col*2+dx];
-                if(c.kind=="avgpool") value+=sample/4.0;
+    if (c.kind=="avgpool" || c.kind=="maxpool" || c.kind=="avgpool_pad" || c.kind=="maxpool_3x3") {
+        const size_t input_height=c.input[2], input_width=c.input[3];
+        const size_t output_height=c.output[2], output_width=c.output[3];
+        const size_t kernel=c.kind=="maxpool_3x3" ? 3 : 2;
+        const size_t pad=c.kind=="avgpool_pad" ? 1 : 0;
+        for(size_t row=0;row<output_height;++row) for(size_t col=0;col<output_width;++col) {
+            double value=(c.kind=="maxpool" || c.kind=="maxpool_3x3")
+                ? -std::numeric_limits<double>::infinity() : 0.0;
+            for(size_t dy=0;dy<kernel;++dy) for(size_t dx=0;dx<kernel;++dx) {
+                const auto source_row=static_cast<int>(row*2+dy)-static_cast<int>(pad);
+                const auto source_col=static_cast<int>(col*2+dx)-static_cast<int>(pad);
+                if(source_row<0 || source_col<0
+                   || source_row>=static_cast<int>(input_height)
+                   || source_col>=static_cast<int>(input_width)) {
+                    continue;
+                }
+                const double sample=x[static_cast<size_t>(source_row)*input_width+static_cast<size_t>(source_col)];
+                if(c.kind=="avgpool_pad" || c.kind=="avgpool") value+=sample/4.0;
                 else value=std::max(value,sample);
             }
-            y[row*2+col]=value;
+            // exclude_pad=false divides by the full kernel area.
+            y[row*output_width+col]=value;
         }
     } else if (c.kind=="concat" || c.kind=="broadcast") {
         for(size_t i=0;i<x.size();++i) {
             y[i]=x[i];
             y[x.size()+i]=c.kind=="concat" ? -double(x[i]) : x[i];
+        }
+    } else if (c.kind=="concat_width") {
+        const size_t height=c.input[2], width=c.input[3];
+        for(size_t row=0;row<height;++row) {
+            for(size_t col=0;col<width;++col) {
+                y[row*(width*2)+col]=x[row*width+col];
+                y[row*(width*2)+width+col]=-double(x[row*width+col]);
+            }
+        }
+    } else if (c.kind=="broadcast_spatial") {
+        for(size_t i=0;i<x.size();++i) {
+            y[i]=x[i];
+            y[x.size()+i]=x[i];
         }
     } else if (c.kind=="conv") {
         const auto w=weights(c); const size_t ci=c.input[1],h=c.input[2],width=c.input[3],oh=h-2,ow=width-2;

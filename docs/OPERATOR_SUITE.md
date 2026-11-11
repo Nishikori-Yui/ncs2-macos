@@ -31,7 +31,7 @@
 | fake_quantize_256 | [1, 1, 8, 8] | failed / compile | — | — | — |
 | convert_u8_relu | [1, 1, 8, 8] | passed / validation | 1.6434 | 1.7500 | 0 |
 
-## 扩展至 16 项：本轮实机结果
+## 扩展至 16 项：历史实机结果
 
 2026-11-11 新增四个单输入、静态 shape 的 fixture。全部 16 项完成 IR v11 XML/BIN 导出及重新读取，无 USB 导出报告为 `results/suite-20261111-213348-c28a15aa/report.json`。独立 Python 标量参考核对 C++ 参考值，并断言 XML 中存在对应的 `AvgPool`、`MaxPool`、`Concat`、`Broadcast` 层。
 
@@ -52,6 +52,19 @@
 
 - 16 项无 USB 导出：`1b68dd069a54ab9008a3e4db50844493220c1bd4a8b36c013259b7954f2363ce`
 - 16 项实机运行：`dce45c005d1a681ee0c804d75e4495bf17e4ddd74769dfc619f88d70eff7b861`
+
+## 扩展至 20 项：四项增量实机结果
+
+全部 20 个静态 IR 导出并重新读取通过，见本机 `results/suite-20261111-220041-5779c35b/report.json`。四项新增案例单独串行运行，每项 3 次预热、20 次计时，均实际运行于 MYRIAD 并逐元素通过参考校验：
+
+| 案例 | 图含义 | 平均 ms | P95 ms | 核对元素数 |
+| --- | --- | ---: | ---: | ---: |
+| avgpool_pad_2x2 | 2×2、stride 2、padding 1；零 padding 计入平均 | 1.6603 | 1.7347 | 92 |
+| maxpool_3x3 | 3×3、stride 2、无 padding | 1.5993 | 1.7261 | 92 |
+| concat_width | 沿宽度轴拼接 x 和 -x | 1.5996 | 1.7627 | 276 |
+| broadcast_spatial | [1,1,1,3] 广播为 [1,1,2,3] | 1.6918 | 1.9278 | 138 |
+
+这四项的最大绝对误差均为 0，报告为 `results/suite-20261111-220107-4635809b/report.json`。它是独立增量运行，并非完整 20 项硬件回归。初版平均池化图错误设置 `exclude_pad=true`，而参考值包含 padding；核对 OpenVINO API 后改为 `false`，重建、重新导出并运行上述实机实验。测试现在还检查 IR 的池化属性、拼接轴和广播目标常量。
 
 ## 验证方法与限制
 

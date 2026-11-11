@@ -75,11 +75,34 @@ class ReferenceTests(unittest.TestCase):
                         'maxpool': 'MaxPool',
                         'concat': 'Concat',
                         'broadcast': 'Broadcast',
+                        'avgpool_pad': 'AvgPool',
+                        'maxpool_3x3': 'MaxPool',
+                        'concat_width': 'Concat',
+                        'broadcast_spatial': 'Broadcast',
                     }.get(kind)
                     if expected_layer_type:
                         self.assertIn(expected_layer_type,
                                       {layer.attrib['type'] for layer in xml.find('layers')})
                     binary=(base/(case+'.bin')).read_bytes()
+                    layers=list(xml.find('layers'))
+                    if kind in ('avgpool_pad','maxpool_3x3'):
+                        attributes=next(layer.find('data').attrib for layer in layers
+                                        if layer.attrib['type']==expected_layer_type)
+                        self.assertEqual(attributes['kernel'], '2, 2' if kind=='avgpool_pad' else '3, 3')
+                        self.assertEqual(attributes['strides'], '2, 2')
+                        self.assertEqual(attributes['pads_begin'], '1, 1' if kind=='avgpool_pad' else '0, 0')
+                        self.assertEqual(attributes['pads_end'], '1, 1' if kind=='avgpool_pad' else '0, 0')
+                        if kind=='avgpool_pad':
+                            self.assertEqual(attributes['exclude-pad'], 'false')
+                    if kind=='concat_width':
+                        self.assertEqual(next(layer.find('data').attrib['axis'] for layer in layers
+                                              if layer.attrib['type']=='Concat'), '3')
+                    if kind=='broadcast_spatial':
+                        shape_data=next(layer.find('data').attrib for layer in layers
+                                        if layer.attrib['type']=='Const' and
+                                        layer.find('data').attrib['element_type']=='i64')
+                        offset,size=int(shape_data['offset']),int(shape_data['size'])
+                        self.assertEqual(struct.unpack('<4q',binary[offset:offset+size]), (1,1,2,3))
                     constants=[]
                     for layer in xml.find('layers'):
                         if layer.attrib['type']=='Const':
@@ -108,15 +131,35 @@ class ReferenceTests(unittest.TestCase):
                                         expected.append(math.fsum(a*b for a,b in zip(patch,kernel)))
                         elif kind=='transpose':
                             expected=[max(0,x[c*12+r*4+col]) for r in range(3) for col in range(4) for c in range(2)]
-                        elif kind in ('avgpool','maxpool'):
+                        elif kind in ('avgpool','maxpool','avgpool_pad','maxpool_3x3'):
+                            height,width=item['input_shape'][2:]
+                            kernel=3 if kind=='maxpool_3x3' else 2
+                            pad=1 if kind=='avgpool_pad' else 0
                             expected=[]
-                            for row in range(2):
-                                for col in range(2):
-                                    patch=[x[(row*2+dy)*4+col*2+dx] for dy in range(2) for dx in range(2)]
-                                    expected.append(math.fsum(patch)/4 if kind=='avgpool' else max(patch))
+                            for row in range(item['output_shape'][2]):
+                                for col in range(item['output_shape'][3]):
+                                    patch=[]
+                                    for dy in range(kernel):
+                                        for dx in range(kernel):
+                                            source_row=row*2+dy-pad
+                                            source_col=col*2+dx-pad
+                                            if 0 <= source_row < height and 0 <= source_col < width:
+                                                patch.append(x[source_row*width+source_col])
+                                            elif kind=='avgpool_pad':
+                                                patch.append(0)
+                                    expected.append(math.fsum(patch)/(kernel*kernel)
+                                                    if kind.startswith('avgpool') else max(patch))
                         elif kind=='concat':
                             expected=x+[-value for value in x]
                         elif kind=='broadcast':
+                            expected=x+x
+                        elif kind=='concat_width':
+                            height,width=item['input_shape'][2:]
+                            expected=[]
+                            for row in range(height):
+                                expected.extend(x[row*width:(row+1)*width])
+                                expected.extend(-value for value in x[row*width:(row+1)*width])
+                        elif kind=='broadcast_spatial':
                             expected=x+x
                         elif kind=='affine':
                             # Assert the fixture really serializes the intended channel constants.

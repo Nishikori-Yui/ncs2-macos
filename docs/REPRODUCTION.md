@@ -6,7 +6,7 @@ Use a physical Apple Silicon Mac with Xcode/Command Line Tools, Python 3.11+, CM
 ./ncs2 reproduce --timeout 3600
 ```
 
-The command creates a new local results directory and an allowlisted source snapshot in `fresh source`, with no copied vendor checkout, firmware cache or build output. It checks the environment, downloads pinned OpenVINO/submodules and official firmware, verifies those inputs offline, builds the runtime and five tools, audits their architecture, exports/reloads all sixteen IR fixtures, runs the complete nonhardware tests, and verifies another source candidate. It does not request device discovery or hardware inference.
+The command creates a new local results directory and an allowlisted source snapshot in `fresh source`, with no copied vendor checkout, firmware cache or build output. It checks the environment, downloads pinned OpenVINO/submodules and official firmware, verifies those inputs offline, builds the runtime and five tools, audits their architecture, exports/reloads all twenty IR fixtures, runs the complete nonhardware tests, and verifies another source candidate. It does not request device discovery or hardware inference.
 
 Every stage has a process-group deadline drawn from the overall budget. Completed stages record exit status, timeout status and local-log SHA-256. A failed stage stops subsequent work; existing output is never reused. Raw logs and commands remain local. System/Homebrew prerequisites are host-provided and their versions recorded, so this is not a hermetic OS build.
 
