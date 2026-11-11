@@ -71,3 +71,12 @@ clang++ -arch arm64 -std=c++17 -O2 \
   -o "$BUILD_DIR/ncs2_multi_io"
 file "$BUILD_DIR/ncs2_multi_io"
 
+clang++ -arch arm64 -std=c++17 -O2 \
+  -I "$SOURCE_DIR/src/inference/include" \
+  -I "$SOURCE_DIR/src/core/include" \
+  "$ROOT_DIR/ncs2_multi_worker.cpp" \
+  -L "$SOURCE_DIR/bin/arm64/Release" -lopenvino \
+  -Wl,-rpath,"$SOURCE_DIR/bin/arm64/Release" \
+  -o "$BUILD_DIR/ncs2_multi_worker"
+file "$BUILD_DIR/ncs2_multi_worker"
+

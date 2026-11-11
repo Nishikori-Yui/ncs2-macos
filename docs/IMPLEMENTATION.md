@@ -4,10 +4,10 @@
 
 | 阶段 | 实现 | 证据与边界 |
 | --- | --- | --- |
-| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 9 个非系统 Mach-O 均为 arm64；隔离的新源码/依赖在本机完整复现，第二台 Mac 未验收 |
+| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 11 个非系统 Mach-O 均为 arm64；隔离的新源码/依赖在本机完整复现，第二台 Mac 未验收 |
 | 2 算子/IR | 20 个 IR v11 往返；独立标量参考及序列化属性断言 | 完整 20 项实机运行中 19 项通过、FakeQuantize 编译拒绝 |
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
-| 4 现代 API | 常驻 worker、严格版本化 JSON/张量、Python/Swift 客户端 | 超时/进程回收；内置模型及外部静态 f32 IR；单输入输出，16,384 元素上限 |
+| 4 现代 API | schema 1 单张量 Python/Swift；schema 2 多张量 native worker/Python client | 超时/进程回收；静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；schema 2 硬件验证为 2 输入/2 输出 |
 | 5 无摄像头样例 | WAV 读回→声谱→未训练小 CNN；合成时序异常分数 | 各 3 次实机核对；异常恰为样本 42/43；音频不是分类器 |
 | 6 repo 准备 | 可搬移本地 runtime、来源/许可记录、允许清单源码导出 | 新路径实机与 IR 加载通过；原创许可/第二台 Mac/发行签名仍待决定或验证 |
 
@@ -31,6 +31,7 @@
 - 算子边界扩展：20 项 IR 导出及重新读取通过，报告 `results/suite-20261111-220041-5779c35b/report.json`；四项新增案例单独在 MYRIAD 通过，报告 `results/suite-20261111-220107-4635809b/report.json`，每项 3 次预热、20 次计时及逐元素核对。平均池化的 `exclude_pad` 初版参数和 oracle 曾不一致；核对 API 后改为 `false` 并增加 IR 属性断言，详见本地记录。
 - 完整 20 项硬件复跑：`results/suite-20261111-220616-682f3359/report.json`，19 项通过，FakeQuantize 编译拒绝，套件按设计退出 1。成功项共核对 766,222 个输出元素，最大绝对误差均为 0；独立脚本核对了案例、运行状态、IR 哈希和构建来源。
 - 多输入/输出前置实验：`./ncs2 multi-io` 在 MYRIAD 编译并运行两个 [1,4] f32 输入、加法和减法两个输出的固定图，23 次推理、184 个元素全部通过标量校验，日志见 `results/multi-io-development.md`。这是底层能力证据；worker schema 1 和现有客户端仍为单输入/输出。新增工具后完整非硬件回归 144 项通过，依赖审计覆盖 10 个 arm64 非系统 Mach-O。
+- schema 2 多张量 worker：新增 `ncs2_multi_worker` 与 `ncs2_multi_client.py`，支持 1..32 个静态 f32 输入/输出，端口按 OpenVINO 顺序编号，每个方向合计不超过 16,384 元素。最终完整非硬件回归 149 项通过，11 个非系统 Mach-O 全为 arm64。导出目录拒绝覆盖，重复导出失败后 XML/BIN 哈希不变。开发树及打包 runtime 均在 MYRIAD 验证 23 次、184 个元素通过，模型 SHA-256 `e42a842b3a274585b211202e3674484c49e821775922ae00c5f264988cbd0f72`；详细尝试、失败与输出在 `results/multi-worker-development.md` 和本地完整 notebook。schema 2 仅有 Python 客户端；硬件只覆盖 2×2 图，Swift、非对称端口与任意模型兼容性未验证。
 - 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
 - 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；当前公开仓库的自托管 runner 数量为 0，未触发 workflow，也未做第二台 Mac 验收。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。

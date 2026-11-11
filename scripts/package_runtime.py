@@ -41,7 +41,7 @@ def main():
         "lib/libopenvino_intel_myriad_plugin.so":RUNTIME/"libopenvino_intel_myriad_plugin.so",
         "lib/libusb-1.0.0.dylib":usb,
     }
-    for name in ("ncs2_openvino_probe","ncs2_lab","ncs2_perf","ncs2_worker","ncs2_apps"):
+    for name in ("ncs2_openvino_probe","ncs2_lab","ncs2_perf","ncs2_worker","ncs2_multi_worker","ncs2_apps"):
         sources["bin/"+name]=ROOT/"build-arm64"/name
     originals={}
     for relative,source in sources.items():
@@ -94,7 +94,13 @@ plugins="$ROOT_DIR/lib/plugins.xml"
 case "$action" in
   list|smoke|bench) exec "$ROOT_DIR/bin/ncs2_openvino_probe" "$plugins" "$action" "$@" ;;
   worker) exec "$ROOT_DIR/bin/ncs2_worker" "$plugins" "$@" ;;
-  *) print -- "Local-only arm64 runtime: list | smoke | bench | worker --case CASE"; exit 64 ;;
+  multi-worker)
+    if (( $# == 1 )) && [[ "$1" == "--validate-only" ]]; then
+      exec "$ROOT_DIR/bin/ncs2_multi_worker" --validate-only
+    fi
+    exec "$ROOT_DIR/bin/ncs2_multi_worker" "$plugins" "$@"
+    ;;
+  *) print -- "Local-only arm64 runtime: list | smoke | bench | worker --case CASE | multi-worker --model XML"; exit 64 ;;
 esac
 ''')
     launcher.chmod(0o755)
@@ -103,7 +109,8 @@ esac
         "This copy includes Intel firmware and libusb. Redistribution permission has NOT been established. "
         "Do not upload it as a release. Signatures are ad-hoc, not Developer ID or notarization.\n\n"
         "Non-system dependencies load relative to this directory. Invoke ncs2-local; Python clients may "
-        "use bin/ncs2_worker and lib/plugins.xml directly. Host OS/SDK compatibility is only tested on this Mac.\n")
+        "use bin/ncs2_worker or bin/ncs2_multi_worker and lib/plugins.xml directly. Host OS/SDK compatibility "
+        "is only tested on this Mac.\n")
     manifest={"schema_version":1,"distribution":"local-only-not-cleared","architecture":"arm64",
               "macos":platform.mac_ver()[0],"signature":"ad-hoc","toolchain_sha256":hash_file(ROOT/"toolchain.lock.json"),
               "source_artifact_sha256":originals,"files":{}}

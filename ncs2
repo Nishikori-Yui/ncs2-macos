@@ -21,6 +21,8 @@ case "$action" in
   source-export) exec /bin/zsh "$logger" "导出公开源码候选" python3 "$ROOT_DIR/scripts/export_source.py" "$@" ;;
   apps) exec /bin/zsh "$logger" "无摄像头音频和时序应用实验" python3 "$ROOT_DIR/scripts/run_apps.py" "$@" ;;
   multi-io) exec /bin/zsh "$logger" "双输入双输出 MYRIAD 实验" "$ROOT_DIR/build-arm64/ncs2_multi_io" "$ROOT_DIR/vendor/openvino-2022.3/bin/arm64/Release/plugins.xml" "$@" ;;
+  multi-worker) exec /bin/zsh "$logger" --stream "schema 2 多输入多输出 worker" "$ROOT_DIR/build-arm64/ncs2_multi_worker" "$ROOT_DIR/vendor/openvino-2022.3/bin/arm64/Release/plugins.xml" "$@" ;;
+  multi-worker-demo) exec /bin/zsh "$logger" "schema 2 多张量 worker 实验" python3 "$ROOT_DIR/scripts/multi_worker_demo.py" "$@" ;;
   list|smoke|bench) exec /bin/zsh "$logger" "MYRIAD $action" /bin/zsh "$ROOT_DIR/scripts/run_probe.sh" "$action" "$@" ;;
   help|--help|-h)
     print -- "ncs2: native arm64 macOS experiments (commands append the local notebook)"
@@ -41,7 +43,9 @@ case "$action" in
     print -- "  soak [options]     Bounded worker soak, RSS samples, and restart recovery"
     print -- "  worker --case ID | --model XML  Persistent JSON-lines worker"
     print -- "  apps --hardware | --cpu-only   Offline WAV and time-series demos"
-    print -- "  multi-io           Verify a two-input, two-output MYRIAD graph"
+    print -- "  multi-io [--export DIR]  Export or verify a two-input, two-output graph"
+    print -- "  multi-worker --model XML  Run the schema-2 multi-tensor worker"
+    print -- "  multi-worker-demo --model XML  Run the schema-2 client demo"
     print -- "  package [options]  Local-only relocatable runtime (not a release)"
     print -- "  source-export      Allowlisted source candidate; no vendor/binaries/logs"
     ;;

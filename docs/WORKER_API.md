@@ -9,7 +9,33 @@ The native arm64 C++ worker owns the pinned MYRIAD runtime and compiled graph. P
 
 The worker compiles once and emits a ready object with schema_version=1, type=ready, case, device=MYRIAD, validation_only=false and input/output descriptors (dtype and shape). External IR must have one static f32 input and output, rank 1..8 and at most 16,384 elements per tensor. An unsupported graph fails during startup; no CPU fallback is used. XML/BIN compatibility is determined by the pinned 2022.3.2 reader and MYRIAD compiler.
 
-The separate `./ncs2 multi-io` experiment verifies a fixed two-input, two-output add/subtract graph on MYRIAD. It does not change this worker protocol: schema 1 and both clients still accept a single input and output. General multi-tensor IR, protocol design and client support remain future work.
+Schema 1 remains intentionally single-input/single-output. For static multi-tensor models, use the separate schema-2 worker below; schema 2 does not change the schema-1 executable or Swift client.
+
+## Multi-tensor API, schema 2
+
+Build with `./ncs2 build-probe`, export the verified two-input/two-output fixture, then run the Python client:
+
+    ./ncs2 multi-io --export results/multi-add-sub
+    ./ncs2 multi-worker-demo --model results/multi-add-sub/multi_add_sub.xml --iterations 23
+
+`./ncs2 multi-worker --model path/to/model.xml` starts the persistent worker directly. The XML must describe a MYRIAD-compilable graph with 1..32 static f32 inputs and 1..32 static f32 outputs. Each tensor has rank 1..8 and at most 16,384 elements; the aggregate across all inputs and, independently, all outputs is also limited to 16,384 elements. Inputs and outputs are identified by their zero-based OpenVINO port order. There is no CPU fallback. The protocol supports asymmetric input/output counts, but the current physical-device fixture validates only two inputs and two outputs.
+
+The ready object has `schema_version:2`, `type:"ready"`, `device:"MYRIAD"`, and `inputs`/`outputs` arrays of `{index,dtype,shape}` descriptors. An inference request supplies an `inputs` array with exactly one `{index,dtype,shape,data}` object per input. A successful response carries an `outputs` array in port order, `hardware_executed:true`, and finite f32 values. Health and shutdown report the number of completed inferences. Invalid requests are nonfatal; a device/runtime inference failure is fatal. JSON-lines frames are limited to 1 MiB and the device wait is bounded at 10 seconds. Clients should use their own process deadline to reap a stuck runtime.
+
+Python usage:
+
+    from pathlib import Path
+    from ncs2_multi_client import NCS2MultiWorker
+
+    with NCS2MultiWorker(
+        Path("build-arm64/ncs2_multi_worker"),
+        Path("vendor/openvino-2022.3/bin/arm64/Release/plugins.xml"),
+        Path("results/multi-add-sub/multi_add_sub.xml"),
+    ) as worker:
+        result = worker.infer([[1, 2, 3, 4], [0.5, 1, 1.5, 2]])
+        print([tensor["data"] for tensor in result["outputs"]])
+
+The local verification used two `[1,4]` f32 inputs and two outputs (addition and subtraction), 23 inferences and 184 independently checked output elements on MYRIAD. `ncs2_multi_client.py` is the schema-2 client. Swift and the general-purpose schema-1 client have not yet been extended to schema 2. The packaged local runtime now includes the schema-2 worker, but it remains a local-only artifact: firmware and third-party redistribution terms are unresolved.
 
 ## Requests and responses
 

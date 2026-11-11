@@ -1,13 +1,16 @@
 // Two inputs and two distinct outputs, verified on MYRIAD.
 #include <openvino/openvino.hpp>
+#include <openvino/core/graph_util.hpp>
 #include <openvino/opsets/opset1.hpp>
 #include <cmath>
+#include <filesystem>
 #include <iostream>
 #include <stdexcept>
 
 int main(int argc, char** argv) {
     try {
-        if (argc != 2) throw std::runtime_error("Expected plugins.xml path");
+        if (argc != 2 && !(argc == 4 && std::string(argv[2]) == "--export"))
+            throw std::runtime_error("Expected plugins.xml path, optionally followed by --export DIR");
         namespace op = ov::opset1;
         const ov::Shape shape{1, 4};
         auto a = std::make_shared<op::Parameter>(ov::element::f32, shape);
@@ -17,6 +20,16 @@ int main(int argc, char** argv) {
         auto difference = std::make_shared<op::Subtract>(a, b);
         auto graph = std::make_shared<ov::Model>(ov::OutputVector{sum, difference},
                                                  ov::ParameterVector{a, b});
+        if (argc == 4) {
+            const std::filesystem::path directory(argv[3]);
+            if (!std::filesystem::create_directory(directory))
+                throw std::runtime_error("Export directory must not already exist");
+            const auto xml = (directory / "multi_add_sub.xml").string();
+            const auto bin = (directory / "multi_add_sub.bin").string();
+            ov::serialize(graph, xml, bin, ov::pass::Serialize::Version::IR_V10);
+            std::cout << "MULTI_IO_EXPORT=PASS; xml=" << xml << "; bin=" << bin << '\n';
+            return 0;
+        }
         ov::Core core(argv[1]);
         core.set_property("MYRIAD", {{"LOG_LEVEL", "LOG_NONE"}});
         if (core.get_property("MYRIAD", ov::available_devices).size() != 1)

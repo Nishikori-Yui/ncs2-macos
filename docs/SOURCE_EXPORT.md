@@ -13,7 +13,7 @@ The launcher logs commands even for `--check`. To validate without writing any l
 
 ## Selection and validation
 
-The exporter defines `REQUIRED_FILES` explicitly: root documentation, lock file, launchers, Python clients, six C++ source/header files, current command scripts and their helper modules, the Swift example, this guide, and exporter tests. Missing required files or source directories fail the export. Maintain this inventory when adding or removing command dependencies; it is not automatic dependency discovery.
+The exporter defines `REQUIRED_FILES` explicitly: root documentation, lock file, launchers, Python clients, C++ sources and headers, current command scripts and their helper modules, the Swift example, this guide, and focused tests. Missing required files or source directories fail the export. Maintain this inventory when adding or removing command dependencies; it is not automatic dependency discovery.
 
 Additional selection is shallow and uses both location and suffix:
 
