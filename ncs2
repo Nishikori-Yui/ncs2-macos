@@ -29,6 +29,7 @@ case "$action" in
     print -- "  check              Verify non-system Mach-O dependencies are arm64"
     print -- "  reproduce [options] Fresh online inputs/build and offline tests; no USB"
     print -- "  usb [--show-serial] Read descriptors; serial hidden by default"
+    print -- "      --parse-configuration-hex HEX|@PATH Parse saved config offline"
     print -- "  list               Ask MYRIAD for available device IDs"
     print -- "  smoke              Boot official firmware if needed; run/verify ReLU"
     print -- "  bench [N] [warmup] Verified alternating-input ReLU timings (100/10)"

@@ -36,6 +36,7 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 ./ncs2 build           # Native arm64 runtime + MYRIAD + IR frontend + probe
 ./ncs2 check           # Recursive architecture check for non-system libraries
 ./ncs2 usb             # Descriptor read; serial numbers hidden by default
+./ncs2 usb --parse-configuration-hex HEX  # Offline parse a saved descriptor; no USB
 ./ncs2 list            # MYRIAD device IDs
 ./ncs2 smoke           # May boot official firmware; run/validate a ReLU model
 ./ncs2 bench 100 10    # 10 warm-ups, then 100 timed/validated requests
@@ -60,7 +61,7 @@ USB access can vary between a sandboxed process and a normal macOS terminal. Run
 
 The toolkit is for USB inspection, firmware and XLink experiments, deterministic synthetic inference, throughput/latency measurements, and model compatibility tests. It does not upload arbitrary firmware or reset the device implicitly from the descriptor probe.
 
-This is an experimental source preview, with no packaged release. The publication boundary and remaining checks are in docs/PUBLICATION_CHECKLIST.md. Fresh-machine bootstrap, broad model support, and signed relocatable binary distribution still need validation. Licensing for this repository's own code has not yet been selected; public visibility does not grant an open-source license. Third-party licensing notes are in `THIRD_PARTY_NOTICES.md`.
+This is an experimental source preview, with no packaged release. The publication boundary and remaining checks are in docs/PUBLICATION_CHECKLIST.md. Same-machine fresh bootstrap is verified; a second physical Mac, broad model support, and signed relocatable binary distribution still need validation. Licensing for this repository's own code has not yet been selected; public visibility does not grant an open-source license. Third-party licensing notes are in `THIRD_PARTY_NOTICES.md`.
 
 
 ## Operator and lifecycle experiments

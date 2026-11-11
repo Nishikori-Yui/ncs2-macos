@@ -25,8 +25,10 @@
 - 主机采样时间和子进程 event elapsed_ms 分别保存；observed_elapsed_s 是接收事件时刻，存在调度/传输延迟。
 - 当前事件为图构造、compile、infer、teardown、process_exit；尚未进入 XLink stream/buffer 协议层，不是 USB 包抓取。
 - 运行期间只读 cached descriptors，未声称已读取 booted 配置端点。显式固件上传由原有 runtime 负责，没有额外手工上传或设备 reset。
+- `./ncs2 usb --parse-configuration-hex HEX` 可离线解析已保存的配置描述符；也接受 `@PATH` 读取十六进制文件。它不加载 libusb、不枚举设备，遇到截断、长度不一致或接口端点数量不匹配会返回非零。
+- 解析结果保留每个 descriptor 的偏移、类型和原始字节，并按 interface/alternate setting 归组 endpoints；声明长度、接口数量或端点数量不一致均作为错误，不把部分解析伪装成完整结果。
 - passed 要求推理正确、观察线程终止、没有采样错误、确实看见 bootloader 和 booted、并且进程退出后看见 bootloader。只跑完命令不足以判通过。
 
 原始证据：results/usb-trace-20261111-155311-82da7b4d/report.json
 
-后续继续：XLink 事件与流/缓冲区观察、并发请求吞吐、主机预处理对照。功耗仍需独立测量；USB2/3 对照需实际控制链路条件。
+已完成：XLink 事件与流/缓冲区观察、并发请求吞吐、主机预处理对照。下一步是更长稳定性与事件计数对照；功耗仍需独立测量，USB2/3 对照需实际控制链路条件。
