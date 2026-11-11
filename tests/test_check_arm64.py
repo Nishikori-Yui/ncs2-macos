@@ -23,7 +23,7 @@ class ArchitectureAuditTests(unittest.TestCase):
         self.probe.parent.mkdir(parents=True)
         self.runtime.mkdir(parents=True)
         for path in (self.probe, *(self.probe.parent / name for name in
-                                    ('ncs2_lab', 'ncs2_perf', 'ncs2_worker', 'ncs2_apps'))):
+                                    ('ncs2_lab', 'ncs2_perf', 'ncs2_worker', 'ncs2_apps', 'ncs2_multi_io'))):
             path.write_bytes(path.name.encode())
         self.library = self.runtime / 'libopenvino.dylib'
         self.library.write_bytes(b'openvino')
@@ -58,7 +58,7 @@ class ArchitectureAuditTests(unittest.TestCase):
         command.side_effect = self.mock_command
         report = check_arm64.audit()
         self.assertEqual(report['status'], 'passed')
-        self.assertEqual(report['non_system_macho_count'], 9)
+        self.assertEqual(report['non_system_macho_count'], 10)
         probe = next(item for item in report['artifacts'] if item['path'].endswith('ncs2_openvino_probe'))
         self.assertEqual(probe['architectures'], ['arm64'])
         self.assertEqual(probe['sha256'], hashlib.sha256(self.probe.read_bytes()).hexdigest())

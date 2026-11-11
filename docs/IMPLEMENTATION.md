@@ -30,6 +30,7 @@
 - 扩展后完整非硬件回归再次运行：144 项，23.252 秒全部通过。两份完整算子报告及全部 XML/BIN 的 SHA-256、op 类型、源码/二进制版本和 765,624 个设备元素的累计检查数另外核对通过；本机记录见 `results/operator-expansion-development.md`、`results/operator-expansion-verification.json`。
 - 算子边界扩展：20 项 IR 导出及重新读取通过，报告 `results/suite-20261111-220041-5779c35b/report.json`；四项新增案例单独在 MYRIAD 通过，报告 `results/suite-20261111-220107-4635809b/report.json`，每项 3 次预热、20 次计时及逐元素核对。平均池化的 `exclude_pad` 初版参数和 oracle 曾不一致；核对 API 后改为 `false` 并增加 IR 属性断言，详见本地记录。
 - 完整 20 项硬件复跑：`results/suite-20261111-220616-682f3359/report.json`，19 项通过，FakeQuantize 编译拒绝，套件按设计退出 1。成功项共核对 766,222 个输出元素，最大绝对误差均为 0；独立脚本核对了案例、运行状态、IR 哈希和构建来源。
+- 多输入/输出前置实验：`./ncs2 multi-io` 在 MYRIAD 编译并运行两个 [1,4] f32 输入、加法和减法两个输出的固定图，23 次推理、184 个元素全部通过标量校验，日志见 `results/multi-io-development.md`。这是底层能力证据；worker schema 1 和现有客户端仍为单输入/输出。新增工具后完整非硬件回归 144 项通过，依赖审计覆盖 10 个 arm64 非系统 Mach-O。
 - 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
 - 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；当前公开仓库的自托管 runner 数量为 0，未触发 workflow，也未做第二台 Mac 验收。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。

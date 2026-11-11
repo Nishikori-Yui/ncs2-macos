@@ -43,6 +43,7 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 ./ncs2 bench 100 10    # 10 warm-ups, then 100 timed/validated requests
 ./ncs2 suite --export-only       # 20 IR fixtures; no USB
 ./ncs2 suite --iterations 20 --warmup 3 # MYRIAD operator/shape coverage
+./ncs2 multi-io        # Verify a two-input, two-output graph on MYRIAD
 ./ncs2 trace --case conv_1x3x16x16     # Passive USB lifecycle observation
 ./ncs2 perf --iterations 40 --warmup 5 --timeout 120 # Concurrent throughput and preprocessing
 ./ncs2 worker --case conv_1x3x16x16         # Persistent JSON-lines worker

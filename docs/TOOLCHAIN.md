@@ -52,6 +52,8 @@ The runtime supplies firmware for MYRIAD; the descriptor reader does not boot fi
 
 Keep the old arm64 MYRIAD runtime in its own executable and expose a small versioned JSON/subprocess protocol. Modern Python, Swift, or other clients can call that executable without sharing an OpenVINO ABI or downgrading their Python environment. The current CLI/result record is the first slice. `ncs2_worker` now provides a persistent, versioned JSON-lines boundary for convolution fixtures and external static f32 IR; `ncs2_client.py` is a Python client and `examples/NCS2WorkerClient.swift` shows the macOS Swift boundary. ONNX conversion and multiple-input/output or dynamic tensor support remain future work.
 
+`./ncs2 multi-io` separately checks one static two-input, two-output add/subtract graph on the device. This establishes a narrow runtime capability, not multi-tensor support in the worker or arbitrary models.
+
 This removes the x86_64 dependency for the demonstrated host inference path. It does not remove dependence on Intel firmware, reimplement the device compiler, or establish arbitrary operator/model compatibility. The old xbyak submodule is a source/build dependency in this checkout, not a loaded x86_64 library.
 
 ## Public repository boundary

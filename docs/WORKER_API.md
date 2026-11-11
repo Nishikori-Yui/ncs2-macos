@@ -9,6 +9,8 @@ The native arm64 C++ worker owns the pinned MYRIAD runtime and compiled graph. P
 
 The worker compiles once and emits a ready object with schema_version=1, type=ready, case, device=MYRIAD, validation_only=false and input/output descriptors (dtype and shape). External IR must have one static f32 input and output, rank 1..8 and at most 16,384 elements per tensor. An unsupported graph fails during startup; no CPU fallback is used. XML/BIN compatibility is determined by the pinned 2022.3.2 reader and MYRIAD compiler.
 
+The separate `./ncs2 multi-io` experiment verifies a fixed two-input, two-output add/subtract graph on MYRIAD. It does not change this worker protocol: schema 1 and both clients still accept a single input and output. General multi-tensor IR, protocol design and client support remain future work.
+
 ## Requests and responses
 
 Every request is a JSON object with schema_version=1, a nonempty request_id (at most 128 UTF-8 bytes) and an operation.
