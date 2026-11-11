@@ -89,6 +89,6 @@ The persistent worker protocols are documented in docs/WORKER_API.md. Schema 1 s
 
 Local runtime bundles include firmware and dependencies; they are not cleared for redistribution. Only copied artifacts have their loader paths changed and receive ad-hoc signatures. Source exports exclude vendor/build/firmware/results/raw notebooks and reject known local home/project paths. Public source publication is separate from license selection and binary release approval.
 
-See CONTRIBUTING.md for offline and hardware checks, docs/WORKER_STABILITY.md for the bounded soak/restart experiment, docs/SOURCE_EXPORT.md for source inventory checks, and docs/THIRD_PARTY_REVIEW.md for the provenance boundary. A second Mac, license selection and signed/notarized distribution remain separate release requirements.
+See CONTRIBUTING.md for offline and hardware checks, docs/WORKER_STABILITY.md for the bounded soak/restart experiment, docs/SOURCE_EXPORT.md for source inventory checks, docs/THIRD_PARTY_REVIEW.md for the provenance boundary, and docs/LICENSE_OPTIONS.md for the pending project-license decision. A second Mac, license selection and signed/notarized distribution remain separate release requirements.
 
 See [REPRODUCTION.md](docs/REPRODUCTION.md) for fresh local rebuilds and the optional manual workflow on a physical self-hosted Mac. An isolated fresh-source/dependency rebuild and a separate NCS2 smoke passed on the development Mac; a second Mac is still unverified. GitHub-hosted macOS virtual machines are not used.
