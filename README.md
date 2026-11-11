@@ -44,6 +44,7 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 ./ncs2 perf --iterations 40 --warmup 5 --timeout 120 # Concurrent throughput and preprocessing
 ./ncs2 worker --case conv_1x3x16x16         # Persistent JSON-lines worker
 ./ncs2 soak --duration 120 --restarts 3     # Verified worker soak and restart experiment
+./ncs2 soak --recovery-only               # Process-crash recovery observation without another soak
 ```
 
 All commands except help append command, captured output, exit status, and duration to `ncs2_read_attempts.md`. Set `NCS2_LOG_FILE` to override its location. Notebook writers must run sequentially; the lock refuses concurrent or nested writers. The worker command streams protocol stdout immediately, sends diagnostics to stderr, and appends its bounded record after exit. Run `./ncs2 build-probe` after editing only the C++ probe.

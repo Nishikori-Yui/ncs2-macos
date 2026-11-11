@@ -39,6 +39,8 @@ The client accepts `start_new_session=False` when an outer supervisor owns the p
 
 The worker uses a 10-second asynchronous inference wait. A runtime teardown can itself stall, so the parent's deadline remains the final boundary. There is no promise of hot-unplug recovery; restart a failed worker explicitly.
 
+After an idle worker is killed, USB can still show its running firmware while this runtime's available-device list is empty: the underlying enumeration lists unbooted devices. Two local supervised experiments observed return to the bootloader around the sixth three-second retry and then verified fresh inference. The soak supervisor supplies this bounded retry policy; a single `NCS2Worker` startup does not retry automatically. See WORKER_STABILITY.md for exact evidence and limitations.
+
 The CLI logger streams stdout immediately and appends its bounded notebook record only when the worker exits. Do not nest it inside another logger. Direct library clients spawn the executable, not the CLI wrapper. Commands and experimental results are recorded by the calling test/demo.
 
 ## Verified evidence

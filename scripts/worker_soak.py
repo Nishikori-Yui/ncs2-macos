@@ -79,8 +79,12 @@ class Experiment:
             "passed": False,
             "started_at": now(),
             "case": "conv_1x1x8x8",
-            "duration_target_seconds": args.duration,
+            "duration_target_seconds": None if args.recovery_only else args.duration,
+            "phases_requested": ["forced_restart"] if args.recovery_only else ["soak", "graceful_restarts", "forced_restart"],
             "overall_timeout_seconds": args.overall_timeout,
+            "mode": "recovery-only" if args.recovery_only else "soak-and-recovery",
+            "recovery_attempt_limit": args.recovery_attempts,
+            "retry_interval_seconds": args.retry_interval,
             "worker_sha256": hash_file(worker),
             "worker_source_sha256": hash_file(ROOT / "ncs2_worker.cpp"),
             "client_sha256": hash_file(ROOT / "ncs2_client.py"),
@@ -216,16 +220,26 @@ class Experiment:
         self.report["results"]["graceful_restarts"] = results
 
     def run_forced_restart(self):
+        from usb_passive import USBObserver
+        observer = USBObserver()
         self.remaining(reserve=10)
         client = self.start_worker()
         try:
             self.check_health(client, 0)
+            self.infer_checked(client)
+            self.check_health(client, 1)
+            self.event("before_process_kill", usb=observer.snapshot())
             pid = client.process.pid
             client.process.kill()
             code = client.process.wait(timeout=min(5.0, self.remaining()))
             if code != -signal.SIGKILL:
                 raise RuntimeError(f"Expected supervised SIGKILL exit, got {code}")
             client.close(force=True)
+            killed_at = time.monotonic()
+            self.report["results"]["forced_restart"] = {
+                "killed_exit_code": code, "physical_usb_detach": False,
+                "recovery_verified": False,
+            }
             self.event("supervised_process_kill", pid=pid, exit_code=code,
                        note="Process-only test; no physical USB detach was performed")
         except BaseException:
@@ -235,21 +249,25 @@ class Experiment:
         attempts = []
         self.report["results"]["recovery_start_attempts"] = attempts
         recovery = None
-        for attempt in range(1, 6):
+        for attempt in range(1, self.args.recovery_attempts + 1):
             self.remaining(reserve=10)
+            sample = {"attempt": attempt, "elapsed_since_kill_seconds": round(time.monotonic() - killed_at, 3),
+                      "usb_before_start": observer.snapshot()}
             try:
                 recovery = self.start_worker()
-                attempts.append({"attempt": attempt, "ready": True})
-                self.event("recovery_start", attempt=attempt, ready=True)
+                sample.update(ready=True, ready_after_kill_seconds=round(time.monotonic() - killed_at, 3))
+                attempts.append(sample)
+                self.event("recovery_start", **sample)
                 break
             except Exception as error:
-                attempts.append({"attempt": attempt, "ready": False, "error": str(error)})
-                self.event("recovery_start", attempt=attempt, ready=False, error=str(error))
+                sample.update(ready=False, error=str(error))
+                attempts.append(sample)
+                self.event("recovery_start", **sample)
                 self._save()
-                if attempt < 5:
-                    time.sleep(min(3.0, self.remaining(reserve=10)))
+                if attempt < self.args.recovery_attempts:
+                    time.sleep(min(self.args.retry_interval, self.remaining(reserve=10)))
         if recovery is None:
-            raise RuntimeError("No ready worker after five bounded recovery starts")
+            raise RuntimeError(f"No ready worker after {self.args.recovery_attempts} bounded recovery starts")
         try:
             self.check_health(recovery, 0)
             self.infer_checked(recovery)
@@ -263,14 +281,17 @@ class Experiment:
             "recovery_health_completed": 1,
             "recovery_exit_code": recovery.process.returncode,
             "physical_usb_detach": False,
+            "recovery_verified": True,
+            "ready_after_kill_seconds": sample["ready_after_kill_seconds"],
         }
 
     def run(self):
         try:
-            self.run_soak()
-            self._save()
-            self.run_graceful_restarts()
-            self._save()
+            if not self.args.recovery_only:
+                self.run_soak()
+                self._save()
+                self.run_graceful_restarts()
+                self._save()
             self.run_forced_restart()
             self._save()
             latencies = self.report["results"].pop("infer_ms", [])
@@ -310,6 +331,9 @@ def parse_args():
     parser.add_argument("--request-timeout", type=float, default=15.0)
     parser.add_argument("--startup-timeout", type=float, default=45.0)
     parser.add_argument("--overall-timeout", type=int, default=600, help="strict whole-run deadline in seconds")
+    parser.add_argument("--recovery-only", action="store_true", help="skip soak and graceful restart phases; test process recovery only")
+    parser.add_argument("--recovery-attempts", type=int, default=10, help="maximum recovery worker startups (1..31; default 10)")
+    parser.add_argument("--retry-interval", type=float, default=3.0, help="seconds between failed startups (1..10)")
     parser.add_argument("--internal-run", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--output", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -323,6 +347,10 @@ def parse_args():
         parser.error("worker timeouts must be positive and bounded")
     if not 240 <= args.overall_timeout <= 1800:
         parser.error("--overall-timeout must be in 240..1800 seconds")
+    if not 1 <= args.recovery_attempts <= 31:
+        parser.error("--recovery-attempts must be in 1..31")
+    if not math.isfinite(args.retry_interval) or not 1 <= args.retry_interval <= 10:
+        parser.error("--retry-interval must be finite and in 1..10 seconds")
     return args
 
 

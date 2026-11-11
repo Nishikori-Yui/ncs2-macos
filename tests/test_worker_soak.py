@@ -9,7 +9,7 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import worker_soak as soak
@@ -78,6 +78,55 @@ class SoakTests(unittest.TestCase):
                 self.assertEqual(soak.supervise(argparse.Namespace(overall_timeout=0.2)), 124)
             self.assertLess(time.monotonic() - started, 3)
             self.assertEqual(children[0].returncode, -signal.SIGKILL)
+
+    def test_recovery_only_skips_soak_and_records_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args = argparse.Namespace(output=directory, overall_timeout=300, duration=120,
+                                      recovery_only=True, recovery_attempts=10, retry_interval=3)
+            experiment = soak.Experiment(args)
+            experiment.run_soak = Mock(side_effect=AssertionError('must skip soak'))
+            experiment.run_graceful_restarts = Mock(side_effect=AssertionError('must skip restarts'))
+            def verified_recovery():
+                experiment.report['results']['inferences'] = 2
+                experiment.input_digests.update(['first', 'second'])
+            experiment.run_forced_restart = Mock(side_effect=verified_recovery)
+            self.assertEqual(experiment.run(), 0)
+            report = json.loads((Path(directory) / 'report.json').read_text())
+            self.assertEqual(report['mode'], 'recovery-only')
+            self.assertIsNone(report['duration_target_seconds'])
+            self.assertEqual(report['phases_requested'], ['forced_restart'])
+            experiment.run_soak.assert_not_called()
+            experiment.run_graceful_restarts.assert_not_called()
+
+    def test_recovery_exhaustion_is_failed_and_stops_at_limit(self):
+        from usb_passive import USBObserver
+        with tempfile.TemporaryDirectory() as directory:
+            args = argparse.Namespace(output=directory, overall_timeout=300, duration=120,
+                                      recovery_only=True, recovery_attempts=2, retry_interval=1)
+            experiment = soak.Experiment(args)
+            original = Mock()
+            original.process.pid = 123456
+            original.process.wait.return_value = -signal.SIGKILL
+            experiment.start_worker = Mock(side_effect=[original, RuntimeError('unavailable'), RuntimeError('unavailable')])
+            experiment.check_health = Mock()
+            experiment.infer_checked = Mock()
+            experiment.event = Mock()
+            with patch.object(USBObserver, 'snapshot', return_value={'movidius_devices': []}), \
+                    patch.object(soak.time, 'sleep') as sleep:
+                self.assertEqual(experiment.run(), 1)
+            self.assertEqual(experiment.start_worker.call_count, 3)
+            self.assertEqual(sleep.call_count, 1)
+            self.assertFalse(experiment.report['passed'])
+            self.assertFalse(experiment.report['results']['forced_restart']['recovery_verified'])
+            self.assertEqual(len(experiment.report['results']['recovery_start_attempts']), 2)
+
+    def test_cli_recovery_budget_rejects_nonfinite_or_unbounded_values(self):
+        for option, value in [('--recovery-attempts', '0'), ('--recovery-attempts', '32'),
+                              ('--retry-interval', 'nan'), ('--retry-interval', '11')]:
+            with self.subTest(option=option, value=value), patch.object(sys, 'argv', ['soak', option, value]):
+                with self.assertRaises(SystemExit) as failure:
+                    soak.parse_args()
+                self.assertEqual(failure.exception.code, 2)
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@
 
 ## 本轮证据
 
-- 最终源码预览 120 项非硬件整合回归全部通过（23.627 秒）；包括客户端、源码导出及 5 项 soak 数值/RSS/监督器测试，后者包含真实 SIGTERM 忽略进程的强制回收。
+- 恢复观测更新后 123 项非硬件整合回归全部通过（22.249 秒）；包括客户端、源码导出及 8 项 soak 数值/RSS/监督器/有限重试测试，后者包含真实 SIGTERM 忽略进程的强制回收。
 - 性能：results/perf-20261111-165442-c6ec393c/report.json（3 轮×5 模式，每项 5 warmup+40 measured），529,200 输出校验。
 - 大卷积：results/perf-20261111-173115-db71dab7/report.json，1,656,000 输出校验。
 - 最终性能故意扰动：results/perf-20261111-173144-21e08c60/report.json，4 模式 validation 失败，均 hardware_executed=true。
@@ -22,10 +22,11 @@
 - XLink：results/xlink-20261111-173035-7b39a10e/report.json，保留原始日志和哈希。
 - 搬移：results/relocation-20261111-1734/report.json，动态库来自副本；IR frontend 搬移也通过。
 - 长跑：results/worker-soak-20261111-180642-c04d3699/report.json，同一 worker 120.002 秒、71,703 次推理，65 组输入，所有输出正确；RSS 12 次采样为 44,957,696～45,039,616 bytes，3 次正常重启退出 0。随后 SIGKILL 后 5 次启动均未 ready，整项实验 failed；没有声称进程强杀后可立即自动恢复。首次同类失败也保留在 results/worker-soak-20261111-180011-73a4672d/report.json。详见 WORKER_STABILITY.md。
+- 恢复扩展：独立 recovery-only 与完整默认流程均在第 6 次尝试成功，ready 分别为强杀后 16.575/16.663 秒；前 5 次 USB 为 booted f63b，第 6 次为 bootloader 2485。默认预算改为 10 次，每次失败间隔 3 秒。完整新报告 results/worker-soak-20261111-183417-b6f48cce/report.json：120.001 秒、73,569 次 soak 推理，全阶段 73,574 次、2,648,664 输出核对，正常重启与强杀恢复均通过。仅证明本机两次有界恢复观测，不等于物理拔插恢复。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。
 
 ## 发行和扩展边界
 
-原创代码许可证未选择；公开 repo 已获用户授权，正式开源发行尚未完成。固件/本地包再分发未确认，包仅本地用。第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。短时 soak 与正常重启已验证，强杀后立即恢复测试失败。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
+原创代码许可证未选择；公开 repo 已获用户授权，正式开源发行尚未完成。固件/本地包再分发未确认，包仅本地用。第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。短时 soak、正常重启与扩大有限预算后的进程强杀恢复已验证；立即恢复及原 5 次预算测试仍失败。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
 
 本地实现阶段已有验收证据，完整长期目标保留 active，后续继续许可选择、跨机器复现和更广模型测试。
