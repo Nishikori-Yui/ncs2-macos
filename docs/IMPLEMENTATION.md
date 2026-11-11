@@ -7,7 +7,7 @@
 | 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 11 个非系统 Mach-O 均为 arm64；隔离的新源码/依赖在本机完整复现，第二台 Mac 未验收 |
 | 2 算子/IR | 20 个 IR v11 往返；独立标量参考及序列化属性断言 | 完整 20 项实机运行中 19 项通过、FakeQuantize 编译拒绝 |
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
-| 4 现代 API | schema 1 单张量 Python/Swift；schema 2 多张量 native worker/Python client | 超时/进程回收；静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；schema 2 硬件验证为 2 输入/2 输出 |
+| 4 现代 API | schema 1 单张量 Python/Swift；schema 2 多张量 native worker/Python client | 静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；MYRIAD 实测 2→2、异形 2→1、1→2 |
 | 5 无摄像头样例 | WAV 读回→声谱→未训练小 CNN；合成时序异常分数 | 各 3 次实机核对；异常恰为样本 42/43；音频不是分类器 |
 | 6 repo 准备 | 可搬移本地 runtime、来源/许可记录、允许清单源码导出 | 新路径实机与 IR 加载通过；原创许可/第二台 Mac/发行签名仍待决定或验证 |
 
@@ -31,7 +31,7 @@
 - 算子边界扩展：20 项 IR 导出及重新读取通过，报告 `results/suite-20261111-220041-5779c35b/report.json`；四项新增案例单独在 MYRIAD 通过，报告 `results/suite-20261111-220107-4635809b/report.json`，每项 3 次预热、20 次计时及逐元素核对。平均池化的 `exclude_pad` 初版参数和 oracle 曾不一致；核对 API 后改为 `false` 并增加 IR 属性断言，详见本地记录。
 - 完整 20 项硬件复跑：`results/suite-20261111-220616-682f3359/report.json`，19 项通过，FakeQuantize 编译拒绝，套件按设计退出 1。成功项共核对 766,222 个输出元素，最大绝对误差均为 0；独立脚本核对了案例、运行状态、IR 哈希和构建来源。
 - 多输入/输出前置实验：`./ncs2 multi-io` 在 MYRIAD 编译并运行两个 [1,4] f32 输入、加法和减法两个输出的固定图，23 次推理、184 个元素全部通过标量校验，日志见 `results/multi-io-development.md`。这是底层能力证据；worker schema 1 和现有客户端仍为单输入/输出。新增工具后完整非硬件回归 144 项通过，依赖审计覆盖 10 个 arm64 非系统 Mach-O。
-- schema 2 多张量 worker：新增 `ncs2_multi_worker` 与 `ncs2_multi_client.py`，支持 1..32 个静态 f32 输入/输出，端口按 OpenVINO 顺序编号，每个方向合计不超过 16,384 元素。最终完整非硬件回归 149 项通过，11 个非系统 Mach-O 全为 arm64。导出目录拒绝覆盖，重复导出失败后 XML/BIN 哈希不变。开发树及打包 runtime 均在 MYRIAD 验证 23 次、184 个元素通过，模型 SHA-256 `e42a842b3a274585b211202e3674484c49e821775922ae00c5f264988cbd0f72`；详细尝试、失败与输出在 `results/multi-worker-development.md` 和本地完整 notebook。schema 2 仅有 Python 客户端；硬件只覆盖 2×2 图，Swift、非对称端口与任意模型兼容性未验证。
+- schema 2 多张量 worker 初版：新增 `ncs2_multi_worker` 与 `ncs2_multi_client.py`，支持 1..32 个静态 f32 输入/输出，端口按 OpenVINO 顺序编号，每个方向合计不超过 16,384 元素。当轮完整非硬件回归 149 项通过，11 个非系统 Mach-O 全为 arm64。导出目录拒绝覆盖，重复导出失败后 XML/BIN 哈希不变。开发树及打包 runtime 均在 MYRIAD 验证 23 次、184 个元素通过，模型 SHA-256 `e42a842b3a274585b211202e3674484c49e821775922ae00c5f264988cbd0f72`；详细尝试、失败与输出在 `results/multi-worker-development.md` 和本地完整 notebook。当时只覆盖 2×2 图，非对称端口的后续验证见下文；schema 2 仍仅有 Python 客户端，Swift 与任意模型兼容性未验证。
 - 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
 - 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；当前公开仓库的自托管 runner 数量为 0，未触发 workflow，也未做第二台 Mac 验收。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。
@@ -41,3 +41,10 @@
 原创代码许可证未选择；公开 repo 已获用户授权，正式开源发行尚未完成。固件/本地包再分发未确认，包仅本地用。同机隔离复现和从全新构建执行的独立 smoke 已通过，但第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。短时 soak、正常重启与扩大有限预算后的进程强杀恢复已验证；立即恢复及原 5 次预算测试仍失败。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
 
 本地实现阶段已有验收证据，完整长期目标保留 active，后续继续许可选择、跨机器复现和更广模型测试。
+
+### schema 2 非对称端口补充
+
+- 新增 IR v10 fixtures：`concat-unequal` 将 `[1,3]` 与 `[1,5]` 拼为 `[1,8]`；`split-halves` 将 `[1,8]` 拆成两个 `[1,4]` 输出。每次导出后立即重新读回 XML，并断言参数/result 数量、顺序、shape 和 f32 类型；重复导出保护保留。
+- 两个 Python worker case 各在 MYRIAD 运行 31 次、检查 248 个元素，最大绝对误差 0。直接 C++ 路径和既有 2→2 加减默认路径也各运行 23 次、检查 184 个元素。完整原始命令和输出：`results/asymmetric-ports-development.md`，合并入本机 `ncs2_read_attempts.md`。
+- 完整非硬件回归为 153 项全部通过，11 个非系统 Mach-O 纯 arm64。默认 add-sub 的 worker 路径也复跑 31 次，三个 worker case 合计检查 744 个元素；三个直接 C++ case 合计 552 个元素，本轮实机累计 162 次推理、1296 个输出元素核对。模型哈希、源码和构建哈希的独立核对报告保存在 `results/asymmetric-ports-verification.json`。
+- 这证明选定静态 concat/split 图及 schema 的异形端口编排；不是任意 Concat/Split 属性或任意模型兼容性的承诺。试验排除了摄像头、Linux、虚拟机、Rosetta 与 x86_64 runtime。

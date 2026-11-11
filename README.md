@@ -46,6 +46,10 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 ./ncs2 multi-io        # Verify a two-input, two-output graph on MYRIAD
 ./ncs2 multi-io --export results/multi-add-sub # Export its XML/BIN for the worker
 ./ncs2 multi-worker-demo --model results/multi-add-sub/multi_add_sub.xml --iterations 23
+./ncs2 multi-io --case concat-unequal --export results/concat-fixture # 2 inputs -> 1 output
+./ncs2 multi-worker-demo --case concat-unequal --model results/concat-fixture/multi_concat_unequal.xml
+./ncs2 multi-io --case split-halves --export results/split-fixture   # 1 input -> 2 outputs
+./ncs2 multi-worker-demo --case split-halves --model results/split-fixture/multi_split_halves.xml
 ./ncs2 trace --case conv_1x3x16x16     # Passive USB lifecycle observation
 ./ncs2 perf --iterations 40 --warmup 5 --timeout 120 # Concurrent throughput and preprocessing
 ./ncs2 worker --case conv_1x3x16x16         # Persistent JSON-lines worker
@@ -72,7 +76,7 @@ This is an experimental source preview, with no packaged release. The publicatio
 
 All **20 IR fixtures** export and reload. A complete hardware run reported **19 passed on MYRIAD, 1 rejected at compilation**: standalone FakeQuantize is unsupported by this compiler. The default suite exits nonzero so this limitation remains visible. These are specific static graphs and shapes, not general operator compatibility claims. Every run creates a fresh results/ directory with IR files, artifact hashes, per-case logs, and a structured report. See docs/OPERATOR_SUITE.md and docs/USB_LIFECYCLE.md for details.
 
-The persistent worker protocol is documented in docs/WORKER_API.md. Schema 1 supports one input/output and has Python and Swift clients; schema 2 supports static f32 multi-input/output IR through a native arm64 worker and Python client. The verified hardware case uses two inputs and two outputs; arbitrary model compatibility is not implied. The full implementation status is tracked in docs/IMPLEMENTATION.md. USB lifecycle and XLink debug observations, repeated concurrency/preprocessing experiments, and typed JSON tensor workers are implemented. Camera-free application evidence is described in docs/APPLICATIONS.md. See docs/PERFORMANCE.md, docs/WORKER_API.md and docs/XLINK_DEBUG.md for measurement boundaries and supported scope.
+The persistent worker protocol is documented in docs/WORKER_API.md. Schema 1 supports one input/output and has Python and Swift clients; schema 2 supports static f32 multi-input/output IR through a native arm64 worker and Python client. Hardware checks cover 2→2 add/subtract, unequal-shaped 2→1 concat, and 1→2 split. These are specific graphs and shapes; arbitrary model compatibility is not implied. The full implementation status is tracked in docs/IMPLEMENTATION.md. USB lifecycle and XLink debug observations, repeated concurrency/preprocessing experiments, and typed JSON tensor workers are implemented. Camera-free application evidence is described in docs/APPLICATIONS.md. See docs/PERFORMANCE.md, docs/WORKER_API.md and docs/XLINK_DEBUG.md for measurement boundaries and supported scope.
 
 ## Toolchain and repository artifacts
 

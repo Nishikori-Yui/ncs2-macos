@@ -13,12 +13,19 @@ Schema 1 remains intentionally single-input/single-output. For static multi-tens
 
 ## Multi-tensor API, schema 2
 
-Build with `./ncs2 build-probe`, export the verified two-input/two-output fixture, then run the Python client:
+Build with `./ncs2 build-probe`, export an IR fixture, then run the Python client. The default add/subtract fixture is:
 
     ./ncs2 multi-io --export results/multi-add-sub
     ./ncs2 multi-worker-demo --model results/multi-add-sub/multi_add_sub.xml --iterations 23
 
-`./ncs2 multi-worker --model path/to/model.xml` starts the persistent worker directly. The XML must describe a MYRIAD-compilable graph with 1..32 static f32 inputs and 1..32 static f32 outputs. Each tensor has rank 1..8 and at most 16,384 elements; the aggregate across all inputs and, independently, all outputs is also limited to 16,384 elements. Inputs and outputs are identified by their zero-based OpenVINO port order. There is no CPU fallback. The protocol supports asymmetric input/output counts, but the current physical-device fixture validates only two inputs and two outputs.
+Asymmetric ports and unequal shapes can be inspected with:
+
+    ./ncs2 multi-io --case concat-unequal --export results/concat-fixture
+    ./ncs2 multi-worker-demo --case concat-unequal --model results/concat-fixture/multi_concat_unequal.xml
+    ./ncs2 multi-io --case split-halves --export results/split-fixture
+    ./ncs2 multi-worker-demo --case split-halves --model results/split-fixture/multi_split_halves.xml
+
+`./ncs2 multi-worker --model path/to/model.xml` starts the persistent worker directly. The XML must describe a MYRIAD-compilable graph with 1..32 static f32 inputs and 1..32 static f32 outputs. Each tensor has rank 1..8 and at most 16,384 elements; the aggregate across all inputs and, independently, all outputs is also limited to 16,384 elements. Inputs and outputs are identified by their zero-based OpenVINO port order. There is no CPU fallback. Physical-device validation now covers 2→2 add/subtract, unequal-shaped 2→1 concat (`[1,3]` and `[1,5]` to `[1,8]`), and 1→2 split (`[1,8]` to two `[1,4]` outputs). These fixtures check the port-count contract and output ordering; they do not establish general compiler compatibility.
 
 The ready object has `schema_version:2`, `type:"ready"`, `device:"MYRIAD"`, and `inputs`/`outputs` arrays of `{index,dtype,shape}` descriptors. An inference request supplies an `inputs` array with exactly one `{index,dtype,shape,data}` object per input. A successful response carries an `outputs` array in port order, `hardware_executed:true`, and finite f32 values. Health and shutdown report the number of completed inferences. Invalid requests are nonfatal; a device/runtime inference failure is fatal. JSON-lines frames are limited to 1 MiB and the device wait is bounded at 10 seconds. Clients should use their own process deadline to reap a stuck runtime.
 
@@ -35,7 +42,7 @@ Python usage:
         result = worker.infer([[1, 2, 3, 4], [0.5, 1, 1.5, 2]])
         print([tensor["data"] for tensor in result["outputs"]])
 
-The local verification used two `[1,4]` f32 inputs and two outputs (addition and subtraction), 23 inferences and 184 independently checked output elements on MYRIAD. `ncs2_multi_client.py` is the schema-2 client. Swift and the general-purpose schema-1 client have not yet been extended to schema 2. The packaged local runtime now includes the schema-2 worker, but it remains a local-only artifact: firmware and third-party redistribution terms are unresolved.
+On the local NCS2, each schema-2 topology was run for 31 requests (248 checked output elements per case), with maximum absolute error 0.0: the default 2→2 add/subtract graph, unequal-shaped 2→1 concat, and 1→2 split. The direct C++ experiment also ran each topology for 23 requests. XML export reload checks the expected IR ports and shapes before an experiment starts. `ncs2_multi_client.py` is the schema-2 client. Swift and the general-purpose schema-1 client have not yet been extended to schema 2. The packaged local runtime includes the schema-2 worker, but it remains a local-only artifact: firmware and third-party redistribution terms are unresolved.
 
 ## Requests and responses
 

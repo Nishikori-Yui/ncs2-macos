@@ -10,7 +10,7 @@
 | 数值实验 | 20 个 IR v11 fixture 全部往返；完整实机套件 19 项通过，standalone FakeQuantize 编译拒绝 | 继续扩大 shape、属性与组合图的边界，并记录任意用户模型的兼容限制 |
 | 离线音频 | 已完成 WAV 读回、声谱预处理和未训练小 CNN 的数值验证；它没有分类语义 | 测试更多合法/非法 WAV 输入；训练分类器属于另一个数据和许可项目 |
 | 时间序列 | 已完成固定合成序列的异常分数和已知 spike 核对 | 扰动窗口、阈值和事件位置，检查误报/漏报边界 |
-| 现代 macOS API | schema 1 单张量 worker 有 Python/Swift 客户端；独立 schema 2 Python worker 实测双输入双输出加减图 | 为 Swift 增加 schema 2 客户端，实测非对称端口模型，再评估稳定发布接口 |
+| 现代 macOS API | schema 1 单张量 worker 有 Python/Swift 客户端；schema 2 Python worker 实测 2→2、异形 2→1 concat 和 1→2 split | 为 Swift 增加 schema 2 客户端，扩展模型组合并在第二台 Mac 复现 |
 
 性能报告应同时保留模型、shape、数据类型、USB 连接速率、预热次数、样本量和误差，不把 1x4 ReLU 的毫秒数外推为通用推理速度。功耗或能效需要额外测量，不能从延迟推算。
 
@@ -22,7 +22,7 @@
 2. **协议观察**：收集 XLink/MVNC 的 stream、FIFO、trigger、read/write、close/reset 事件，建立事件计数与图大小、请求深度、重启阶段的对照表。它适合做 runtime 事件考古，不等于 USB packet capture。
 3. **性能实验室**：做请求深度、同步/异步、静态 shape、主机/设备预处理、USB 2/3 链路和外部功耗的 A/B；保存启动、推理、P50/P95、吞吐、温度和电能，不把小 ReLU 的延迟外推成 TOPS。
 4. **算子兼容性地图**：average/max pooling、concat 和 broadcast 的八个静态 fixture 已在两次实验中通过实机验证，覆盖一个 padding、宽度轴与空间广播边界；继续增加属性、shape 和图组合。每项用独立标量参考，保留编译拒绝证据；具体 fixture 的结果不等于整个算子家族都支持。
-5. **macOS 原生推理服务**：让 Swift、Python 或其他客户端只接触版本化 JSON-lines worker；schema 1 覆盖单输入/输出，schema 2 的 Python 实现覆盖静态 f32 多输入/输出。旧 runtime 固定在 arm64 进程中，现代应用不链接旧 OpenVINO ABI，也不需要 x86_64 或 Rosetta。
+5. **macOS 原生推理服务**：让 Swift、Python 或其他客户端只接触版本化 JSON-lines worker；schema 1 覆盖单输入/输出，schema 2 的 Python 实现覆盖静态 f32 多输入/输出。NCS2 上已分别验证两个输入一个输出、一个输入两个输出，以及输入 shape 不同的 concat。旧 runtime 固定在 arm64 进程中，现代应用不链接旧 OpenVINO ABI，也不需要 x86_64 或 Rosetta。
 6. **离线信号实验**：用 WAV、合成时序、传感器日志、音频特征或小型控制信号测试张量布局、数值误差和恢复机制；不需要摄像头，也不把 fixture 冒充成训练好的分类器。
 
 最值得开源的是这层工具链和证据格式：`ncs2 usb`、离线 descriptor parser、`check --json`、worker schema、IR fixture catalog、性能报告和复现脚本。固件、runtime 二进制、第三方来源和许可证仍应单独审查后再决定是否发布。
