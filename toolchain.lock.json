@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "host": {"os": "Darwin", "architecture": "arm64"},
+  "openvino": {
+    "url": "https://github.com/openvinotoolkit/openvino.git",
+    "commit": "6fbc44f307068367bef029f760e26058147b6d1b",
+    "version_observed": "2022.3.2",
+    "directory": "vendor/openvino-2022.3",
+    "submodules": {
+      "thirdparty/ade": "58b2595a1a95cc807be8bf6222f266a9a1f393a9",
+      "thirdparty/protobuf/protobuf": "fe271ab76f2ad2b2b28c10443865d2af21e27e0e",
+      "thirdparty/pugixml": "a0e064336317c9347a91224112af9933598714e9",
+      "thirdparty/xbyak": "f8ea5c28dfcdc98585881d0ca9e499580ca077ae"
+    }
+  },
+  "firmware": [
+    {
+      "url": "https://storage.openvinotoolkit.org/dependencies/myriad/firmware_usb-ma2x8x_20230418_40.zip",
+      "archive": "firmware_usb-ma2x8x_20230418_40.zip",
+      "sha256": "bf61de4d01767ba85408eec3123c0038c5ead4712407dea12b04d822e5780c66",
+      "member": "usb-ma2x8x.mvcmd",
+      "output": "usb/usb-ma2x8x.mvcmd",
+      "output_sha256": "47810e5ee29d974e308cce956668ecca498360cb5d2ab56c717932e635f9d524"
+    },
+    {
+      "url": "https://storage.openvinotoolkit.org/dependencies/myriad/firmware_pcie-ma2x8x_20230418_40.zip",
+      "archive": "firmware_pcie-ma2x8x_20230418_40.zip",
+      "sha256": "7c266447122b8cbc266e0af90835d389e0f56da9c3f3fcf3d7e278b40ca5bc19",
+      "member": "pcie-ma2x8x.mvcmd",
+      "output": "pcie/pcie-ma2x8x.mvcmd",
+      "output_sha256": "3e3db61d9ae92b1a14690e0e00f134e1539492b57e725ff00689da54c6c787e2"
+    }
+  ],
+  "host_versions_observed": {
+    "macos": "27.2 (26B5091g)",
+    "apple_clang": "21.0.0 (clang-2100.4.1.1)",
+    "cmake": "4.4.2",
+    "python": "3.14.6",
+    "libusb": "1.0.30"
+  }
+}

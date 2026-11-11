@@ -1,0 +1,16 @@
+# Local build and dependency trees.
+/build-arm64/
+/vendor/
+/firmware-cache/
+/tmp/
+
+# Machine-specific experiment output.
+/ncs2_read_attempts.md
+*.dSYM/
+*.log
+.DS_Store
+__pycache__/
+*.pyc
+/results/
+/dist/
+
