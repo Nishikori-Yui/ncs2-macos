@@ -41,7 +41,7 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 ./ncs2 list            # MYRIAD device IDs
 ./ncs2 smoke           # May boot official firmware; run/validate a ReLU model
 ./ncs2 bench 100 10    # 10 warm-ups, then 100 timed/validated requests
-./ncs2 suite --export-only       # 12 IR fixtures; no USB
+./ncs2 suite --export-only       # 16 IR fixtures; no USB
 ./ncs2 suite --iterations 20 --warmup 3 # MYRIAD operator/shape coverage
 ./ncs2 trace --case conv_1x3x16x16     # Passive USB lifecycle observation
 ./ncs2 perf --iterations 40 --warmup 5 --timeout 120 # Concurrent throughput and preprocessing
@@ -67,7 +67,7 @@ This is an experimental source preview, with no packaged release. The publicatio
 
 ## Operator and lifecycle experiments
 
-The suite currently reports **11 passed, 1 failed** on this NCS2: standalone FakeQuantize is rejected during MYRIAD compilation. The default suite exits nonzero so this limitation remains visible. Every run creates a fresh results/ directory with IR files, artifact hashes, per-case logs, and a structured report. See docs/OPERATOR_SUITE.md and docs/USB_LIFECYCLE.md for details.
+All **16 IR fixtures** export and reload. The current hardware suite reports **15 passed, 1 failed** on this NCS2, including validated average/max pooling, channel concatenation and broadcasting. Standalone FakeQuantize is still rejected during MYRIAD compilation. The default suite exits nonzero so this limitation remains visible. These are specific static graphs and shapes, not general operator compatibility claims. Every run creates a fresh results/ directory with IR files, artifact hashes, per-case logs, and a structured report. See docs/OPERATOR_SUITE.md and docs/USB_LIFECYCLE.md for details.
 
 The persistent worker protocol is documented in docs/WORKER_API.md. The full implementation status is tracked in docs/IMPLEMENTATION.md. USB lifecycle and XLink debug observations, repeated concurrency/preprocessing experiments, and a persistent worker with typed JSON tensors are implemented. Camera-free application evidence is described in docs/APPLICATIONS.md. See docs/PERFORMANCE.md, docs/WORKER_API.md and docs/XLINK_DEBUG.md for measurement boundaries and supported scope.
 

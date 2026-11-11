@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iomanip>
+#include <limits>
 #include <iostream>
 #include <numeric>
 #include <sstream>
@@ -40,7 +41,11 @@ const std::vector<Case> cases{
     {"reshape_relu", "reshape", {1,2,3,4}, {1,4,6}},
     {"transpose_relu", "transpose", {1,2,3,4}, {1,3,4,2}},
     {"fake_quantize_256", "fq", {1,1,8,8}, {1,1,8,8}, 0, 0.002, 0.002},
-    {"convert_u8_relu", "u8", {1,1,8,8}, {1,1,8,8}}
+    {"convert_u8_relu", "u8", {1,1,8,8}, {1,1,8,8}},
+    {"avgpool_2x2", "avgpool", {1,1,4,4}, {1,1,2,2}},
+    {"maxpool_2x2", "maxpool", {1,1,4,4}, {1,1,2,2}},
+    {"concat_channels", "concat", {1,1,2,3}, {1,2,2,3}},
+    {"broadcast_channels", "broadcast", {1,1,2,3}, {1,2,2,3}}
 };
 
 std::string json_quote(const std::string& text) {
@@ -99,6 +104,16 @@ std::shared_ptr<ov::Model> model(const Case& c) {
         const auto order=op::Constant::create(ov::element::i64,{4},std::vector<int64_t>{0,2,3,1});
         node=std::make_shared<op::Transpose>(input,order);
         node=std::make_shared<op::Relu>(node);
+    } else if (c.kind == "avgpool") {
+        node=std::make_shared<ov::op::v1::AvgPool>(input,ov::Strides{2,2},ov::Shape{0,0},ov::Shape{0,0},ov::Shape{2,2},true);
+    } else if (c.kind == "maxpool") {
+        node=std::make_shared<ov::op::v1::MaxPool>(input,ov::Strides{2,2},ov::Shape{0,0},ov::Shape{0,0},ov::Shape{2,2});
+    } else if (c.kind == "concat") {
+        const auto negated=std::make_shared<op::Negative>(input);
+        node=std::make_shared<op::Concat>(ov::OutputVector{input->output(0),negated->output(0)},1);
+    } else if (c.kind == "broadcast") {
+        const auto shape=op::Constant::create(ov::element::i64,{4},std::vector<int64_t>{1,2,2,3});
+        node=std::make_shared<op::Broadcast>(input,shape);
     } else if (c.kind == "fq") {
         const auto low=op::Constant::create(ov::element::f32,{},std::vector<float>{-1});
         const auto high=op::Constant::create(ov::element::f32,{},std::vector<float>{1});
@@ -124,7 +139,22 @@ std::vector<float> input_values(const Case& c, size_t pass) {
 // No OpenVINO evaluate(), CPU plugin, or tensor library in this reference.
 std::vector<double> reference(const Case& c,const std::vector<float>& x) {
     std::vector<double> y(elements(c.output));
-    if (c.kind=="conv") {
+    if (c.kind=="avgpool" || c.kind=="maxpool") {
+        for(size_t row=0;row<2;++row) for(size_t col=0;col<2;++col) {
+            double value=c.kind=="avgpool" ? 0.0 : -std::numeric_limits<double>::infinity();
+            for(size_t dy=0;dy<2;++dy) for(size_t dx=0;dx<2;++dx) {
+                const double sample=x[(row*2+dy)*4+col*2+dx];
+                if(c.kind=="avgpool") value+=sample/4.0;
+                else value=std::max(value,sample);
+            }
+            y[row*2+col]=value;
+        }
+    } else if (c.kind=="concat" || c.kind=="broadcast") {
+        for(size_t i=0;i<x.size();++i) {
+            y[i]=x[i];
+            y[x.size()+i]=c.kind=="concat" ? -double(x[i]) : x[i];
+        }
+    } else if (c.kind=="conv") {
         const auto w=weights(c); const size_t ci=c.input[1],h=c.input[2],width=c.input[3],oh=h-2,ow=width-2;
         for (size_t oc=0;oc<c.channels;++oc) for(size_t r=0;r<oh;++r) for(size_t col=0;col<ow;++col) {
             double sum=0;

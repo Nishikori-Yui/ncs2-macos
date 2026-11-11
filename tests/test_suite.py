@@ -70,6 +70,15 @@ class ReferenceTests(unittest.TestCase):
                     run_lab('export',case,base)
                     xml=ET.parse(base/(case+'.xml')).getroot()
                     self.assertEqual(xml.attrib['version'],'11')
+                    expected_layer_type={
+                        'avgpool': 'AvgPool',
+                        'maxpool': 'MaxPool',
+                        'concat': 'Concat',
+                        'broadcast': 'Broadcast',
+                    }.get(kind)
+                    if expected_layer_type:
+                        self.assertIn(expected_layer_type,
+                                      {layer.attrib['type'] for layer in xml.find('layers')})
                     binary=(base/(case+'.bin')).read_bytes()
                     constants=[]
                     for layer in xml.find('layers'):
@@ -99,6 +108,16 @@ class ReferenceTests(unittest.TestCase):
                                         expected.append(math.fsum(a*b for a,b in zip(patch,kernel)))
                         elif kind=='transpose':
                             expected=[max(0,x[c*12+r*4+col]) for r in range(3) for col in range(4) for c in range(2)]
+                        elif kind in ('avgpool','maxpool'):
+                            expected=[]
+                            for row in range(2):
+                                for col in range(2):
+                                    patch=[x[(row*2+dy)*4+col*2+dx] for dy in range(2) for dx in range(2)]
+                                    expected.append(math.fsum(patch)/4 if kind=='avgpool' else max(patch))
+                        elif kind=='concat':
+                            expected=x+[-value for value in x]
+                        elif kind=='broadcast':
+                            expected=x+x
                         elif kind=='affine':
                             # Assert the fixture really serializes the intended channel constants.
                             vectors={values for _,values in constants}

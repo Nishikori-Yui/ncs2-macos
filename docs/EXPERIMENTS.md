@@ -7,7 +7,7 @@
 | USB 设备考古 | 已完成描述符读取、层级端点解析、bootloader/runtime PID 和速度变化观察；保存的配置描述符可离线解析 | 在可控硬件链路条件下做 USB 2/3 A/B；继续保持只读观察，不向任意端点盲发数据 |
 | XLink 协议观察 | 已完成结构化 stream、FIFO、trigger、read/write 和 reset 生命周期日志 | 对不同图、请求深度和重启路径比较事件计数；日志仍不等于 USB 包抓取 |
 | 性能实验室 | 已完成冷启动、预热、p50/p95、张量尺寸、重复请求、并发深度和主机/设备预处理对照 | 增加更大模型和更长 soak；功耗与能效必须用独立仪器测量 |
-| 数值实验 | 已完成 12 个 IR v11 fixture、独立标量参考、容差和编译失败保留 | 扩大到更多静态 shape/算子组合，并记录任意用户模型的兼容边界 |
+| 数值实验 | 16 个 IR v11 fixture 全部往返；15 项实机通过，standalone FakeQuantize 编译拒绝；有独立标量参考和容差 | 扩大 pooling/concat/broadcast 的 shape 和属性边界，并记录任意用户模型的兼容限制 |
 | 离线音频 | 已完成 WAV 读回、声谱预处理和未训练小 CNN 的数值验证；它没有分类语义 | 测试更多合法/非法 WAV 输入；训练分类器属于另一个数据和许可项目 |
 | 时间序列 | 已完成固定合成序列的异常分数和已知 spike 核对 | 扰动窗口、阈值和事件位置，检查误报/漏报边界 |
 | 现代 macOS API | 已完成独立 arm64 worker、版本化 JSON、Python/Swift 客户端和超时/恢复边界 | 稳定多输入/多输出与更多模型元数据，再评估面向 macOS 的发布接口 |
@@ -21,7 +21,7 @@
 1. **USB 设备考古**：比较 bootloader `03e7:2485` 与 runtime `03e7:f63b` 的枚举、速度、描述符和生命周期；把保存的十六进制描述符做离线解析、畸形输入测试和差异报告。
 2. **协议观察**：收集 XLink/MVNC 的 stream、FIFO、trigger、read/write、close/reset 事件，建立事件计数与图大小、请求深度、重启阶段的对照表。它适合做 runtime 事件考古，不等于 USB packet capture。
 3. **性能实验室**：做请求深度、同步/异步、静态 shape、主机/设备预处理、USB 2/3 链路和外部功耗的 A/B；保存启动、推理、P50/P95、吞吐、温度和电能，不把小 ReLU 的延迟外推成 TOPS。
-4. **算子兼容性地图**：继续增加 pooling、concat、broadcast、reshape、transpose、量化和边界 shape 的静态 IR fixture；每项用独立标量参考，保留编译拒绝证据，形成 NCS2 可运行子集。
+4. **算子兼容性地图**：average/max pooling、concat 和 broadcast 的四个静态 fixture 已通过实机验证；继续增加 padding、轴、shape 和图组合边界。每项用独立标量参考，保留编译拒绝证据，形成 NCS2 可运行子集；已通过具体 fixture 不等于整个算子家族都支持。
 5. **macOS 原生推理服务**：让 Swift、Python 或其他客户端只接触版本化 JSON-lines worker；旧 runtime 固定在 arm64 进程中，现代应用不链接旧 OpenVINO ABI，也不需要 x86_64 或 Rosetta。
 6. **离线信号实验**：用 WAV、合成时序、传感器日志、音频特征或小型控制信号测试张量布局、数值误差和恢复机制；不需要摄像头，也不把 fixture 冒充成训练好的分类器。
 

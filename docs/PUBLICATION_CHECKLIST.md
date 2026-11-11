@@ -13,6 +13,7 @@
 - 全新构建的实机 smoke 已单独验证；它不是不访问 USB 的复现阶段之一，见 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`。
 - 对可搬移 runtime 做一次 clean-room 路径测试：不要依赖当前 checkout 的 CMake cache；检查 rpath、plugins.xml、libusb 路径和动态依赖。
 - 运行 `./ncs2 suite --export-only`，保存公开摘要而不是机器原始报告；硬件报告应移除序列号、总线地址和绝对路径。
+- 当前目录的 16 项 IR 全部导出/重载通过；本轮完整实机套件有 15 项通过、standalone FakeQuantize 编译拒绝。新增 pooling/concat/broadcast 结果见 `docs/OPERATOR_SUITE.md`；较早全新依赖复现的 12 项记录保持其原有快照范围。
 - 运行 `./ncs2 perf`、worker Python demo、Swift parse/协议 demo，并明确设备型号、固件版本、OpenVINO 兼容线和未支持算子。
 - 公开文档继续说明：2026 年最新版 OpenVINO 不会自动识别 NCS2；现代部分是 macOS arm64 wrapper/worker，设备兼容 runtime 仍固定在 2022.3.x。
 

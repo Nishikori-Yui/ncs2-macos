@@ -117,7 +117,7 @@ def main(argv=None):
         report['failed_stage'] = 'artifact-verification'
         ir = json.loads((checkout / 'results/ir-export/report.json').read_text())
         if not (ir.get('complete') is True and ir.get('passed') is True and ir.get('mode') == 'export'
-                and len(ir.get('cases', [])) == 12 and all(case.get('status') == 'exported'
+                and len(ir.get('cases', [])) == 16 and all(case.get('status') == 'exported'
                     and case.get('hardware_executed') is False for case in ir['cases'])):
             raise RuntimeError('IR export evidence is incomplete')
         check_output(checkout / 'dist/verified-source')

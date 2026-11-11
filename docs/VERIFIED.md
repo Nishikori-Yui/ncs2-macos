@@ -53,6 +53,8 @@ Known limits: tested on one Mac and one NCS2; not a clean-room rebuild on a seco
 - At that phase the architecture audit covered six non-system files; the final audit expands it.
 - Lifecycle trace strictly requires bootloader observed, booted device observed, and bootloader observed after process exit. Final run passed.
 
+The later operator expansion adds average/max pooling, channel concat (`x` with `-x`) and channel broadcast. All 16 fixtures export and reload, with independent C++/Python references and serialized op-type assertions for the new graphs. A complete new hardware run using the same 3 warm-ups and 20 measured requests validates 15 fixtures with zero maximum absolute error; standalone FakeQuantize is still rejected during compilation, so the suite exits 1. The four new graphs account for 736 checked device output elements. Results and graph/shape limits are in OPERATOR_SUITE.md; local evidence is `results/suite-20261111-213649-db869fd8/report.json`. An initial restricted-context enumeration failure is retained separately and was resolved by normal USB access; it was not an operator compile failure.
+
 ## Final integration and fresh-source reproduction, 2026-11-11
 
 144 nonhardware tests passed. Final architecture audit covers 9 non-system Mach-O files (five tools/four dependency libraries), all thin arm64. Performance, strict worker/Python/Swift clients, WAV/CNN and synthetic anomalies, USB descriptor parsing, XLink debug reports, and runtime relocation are verified. The architecture inventory can also be consumed as JSON with `./ncs2 check --json`; stdout is one JSON document and notebook status goes to stderr. See IMPLEMENTATION.md for report paths and release boundaries.

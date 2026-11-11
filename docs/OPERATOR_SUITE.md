@@ -11,7 +11,7 @@
 
 ./ncs2 suite --case relu_4 --iterations 1 --warmup 0 --test-mismatch 是负向测试：仅在主机校验前把首个返回值扰动 1000，不更改网络或固件；预期退出 1。
 
-## 最终硬件结果
+## 首轮 12 项硬件结果（历史）
 
 每项 3 次预热 + 20 次计时；11 个成功案例所有输出都通过独立参考核对。
 独立 FakeQuantize 在编译时被拒绝，套件因此退出 1，未以忽略失败或 CPU fallback 变绿。
@@ -31,6 +31,28 @@
 | fake_quantize_256 | [1, 1, 8, 8] | failed / compile | — | — | — |
 | convert_u8_relu | [1, 1, 8, 8] | passed / validation | 1.6434 | 1.7500 | 0 |
 
+## 扩展至 16 项：本轮实机结果
+
+2026-11-11 新增四个单输入、静态 shape 的 fixture。全部 16 项完成 IR v11 XML/BIN 导出及重新读取，无 USB 导出报告为 `results/suite-20261111-213348-c28a15aa/report.json`。独立 Python 标量参考核对 C++ 参考值，并断言 XML 中存在对应的 `AvgPool`、`MaxPool`、`Concat`、`Broadcast` 层。
+
+本轮完整硬件套件仍按每项 3 次预热 + 20 次计时串行运行：**15 项实机通过，1 项编译拒绝**，套件退出 1。原有 11 个可运行案例均再次通过；standalone FakeQuantize 仍在 compile 阶段因 unsupported layer type 被拒绝，没有执行推理。15 个成功案例每次输出均通过校验，最大绝对误差均为 0。
+
+| 新增案例 | 输入 → 输出 shape | 图含义 | 平均 ms | P95 ms | 核对元素数 |
+| --- | --- | --- | ---: | ---: | ---: |
+| avgpool_2x2 | [1,1,4,4] → [1,1,2,2] | 2×2 平均池化，stride 2，无 padding | 1.6596 | 1.7191 | 92 |
+| maxpool_2x2 | [1,1,4,4] → [1,1,2,2] | 2×2 最大池化，stride 2，无 padding | 1.6269 | 1.7379 | 92 |
+| concat_channels | [1,1,2,3] → [1,2,2,3] | 沿 channel 轴拼接 x 与 -x | 1.7979 | 1.8965 | 276 |
+| broadcast_channels | [1,1,2,3] → [1,2,2,3] | 将单 channel 广播为两份 | 1.7009 | 1.8384 | 276 |
+
+这四项共核对 736 个设备输出元素；完整套件的 15 项成功案例共核对 765,624 个元素。计时边界仍为同步 `infer()`；新增四项每项约 1.42～1.45 秒的启动/编译耗时单独记录。这里只验证表中具体图和 shape；编译器可能降低或改写图，不据此声称任意 pooling/concat/broadcast 属性、动态 shape 或多输入图都受支持。
+
+硬件报告：`results/suite-20261111-213649-db869fd8/report.json`。本轮第一次在受限执行上下文中尝试 `avgpool_2x2` 时，device_enumeration 阶段无 MYRIAD；随后的 libusb 也返回空列表。正常 macOS USB 权限下只读复查立即发现并打开 `03e7:2485`，随后完成上述全套实机运行。受限失败报告 `results/suite-20261111-213402-6da75e29/report.json` 保留；它不是算子编译失败或设备断连证据。
+
+本轮重新运行完整 144 项非硬件回归，23.252 秒全部通过；另外逐项核对两份完整报告的源文件/二进制哈希、32 份 XML/BIN 对、op 类型和检查元素总数。保留的报告 SHA-256：
+
+- 16 项无 USB 导出：`1b68dd069a54ab9008a3e4db50844493220c1bd4a8b36c013259b7954f2363ce`
+- 16 项实机运行：`dce45c005d1a681ee0c804d75e4495bf17e4ddd74769dfc619f88d70eff7b861`
+
 ## 验证方法与限制
 
 - 先构造图、序列化为 IR v11 XML/BIN，再通过 IR 前端读取，最后明确 compile_model(..., MYRIAD)。每项保留 IR SHA-256、原始输出、退出码、失败阶段、超时标记和结果。
@@ -44,9 +66,9 @@
 
 ## 原始证据
 
-results/suite-20261111-155315-1a66e4c5/report.json
+首轮 12 项硬件：results/suite-20261111-155315-1a66e4c5/report.json
 
-导出验证：results/suite-20261111-154520-68e64727/report.json
+首轮导出验证：results/suite-20261111-154520-68e64727/report.json
 负向验证：results/suite-20261111-155038-dd3813fc/report.json
 当前整合的非硬件回归共 144 项通过，覆盖此套件、独立参考、IR 读写、USB descriptor parser、架构审计清单、CLI JSON 标准输出、客户端、源码导出和 worker 恢复监督器。该总数是后续整合回归，不是早期这个算子套件单独运行的测试计数。
 
