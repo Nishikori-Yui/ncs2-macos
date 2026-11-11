@@ -14,6 +14,15 @@ import reproduce_macos as reproduction
 
 
 class ReproductionTests(unittest.TestCase):
+    def test_clean_reproduction_builds_swift_before_architecture_audit(self):
+        stages = reproduction.reproduction_stages()
+        names = [name for name, _ in stages]
+        self.assertLess(names.index('build'), names.index('build-swift'))
+        self.assertLess(names.index('build-swift'), names.index('architecture'))
+        swift = dict(stages)['build-swift']
+        self.assertEqual(swift, ['/bin/zsh', 'scripts/build_swift_clients.sh'])
+        self.assertIn('xcrun swiftc --version', dict(stages)['environment'][-1])
+
     def test_timeout_reaps_real_process_and_retains_output(self):
         with tempfile.TemporaryDirectory() as directory:
             log = Path(directory) / 'child.log'

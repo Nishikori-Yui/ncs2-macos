@@ -4,7 +4,7 @@
 
 | 阶段 | 实现 | 证据与边界 |
 | --- | --- | --- |
-| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 含两个可选 Swift 示例时 13 个非系统 Mach-O 均为 arm64；较早快照在本机隔离复现，第二台 Mac 未验收 |
+| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 最新干净复建含两个 Swift 客户端，共审计 13 个非系统 Mach-O，均为 arm64；第二台 Mac 未验收 |
 | 2 算子/IR | 20 个 IR v11 往返；独立标量参考及序列化属性断言 | 完整 20 项实机运行中 19 项通过、FakeQuantize 编译拒绝 |
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
 | 4 现代 API | schema 1/2 均有 Python/Swift 客户端和 native worker | 静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；两种语言实测 2→2、异形 2→1、1→2 |
@@ -24,8 +24,9 @@
 - 长跑：results/worker-soak-20261111-180642-c04d3699/report.json，同一 worker 120.002 秒、71,703 次推理，65 组输入，所有输出正确；RSS 12 次采样为 44,957,696～45,039,616 bytes，3 次正常重启退出 0。随后 SIGKILL 后 5 次启动均未 ready，整项实验 failed；没有声称进程强杀后可立即自动恢复。首次同类失败也保留在 results/worker-soak-20261111-180011-73a4672d/report.json。详见 WORKER_STABILITY.md。
 - 恢复扩展：独立 recovery-only 与完整默认流程均在第 6 次尝试成功，ready 分别为强杀后 16.575/16.663 秒；前 5 次 USB 为 booted f63b，第 6 次为 bootloader 2485。默认预算改为 10 次，每次失败间隔 3 秒。完整新报告 results/worker-soak-20261111-183417-b6f48cce/report.json：120.001 秒、73,569 次 soak 推理，全阶段 73,574 次、2,648,664 输出核对，正常重启与强杀恢复均通过。仅证明本机两次有界恢复观测，不等于物理拔插恢复。
 - 全新依赖复现：最终源码快照报告 `results/reproduce-physical-verified-20261111/report.json` 的 8 个阶段全部退出码为 0；全新源码快照和依赖、离线锁定校验、原生 arm64 构建、架构审计、12 项 IR export/reload、141 项非硬件回归与源码导出均通过。报告标记 `fresh-source-and-dependencies-on-current-host`、`hardware_executed=false`。此前的 `curl 18` / early EOF 和 DNS 解析失败均保留；有界重试后完成复现。
+- 2026-11-12 最新公开快照干净复建：`results/reproduce-20261112-003435-3155a19e/report.json` 的 8 阶段全部通过，联网拉取与离线锁定校验成功，原生构建、arm64 审计、20 项 IR 导出、166 项非硬件回归和源码导出通过。该批次的首次运行验证了 C++ 工具链，但尚未编译两个 Swift 客户端；为让复建审计覆盖完整最新工具链，随后把 `build-swift` 纳入复建流程并将其放在架构审计之前，见下一轮证据。没有执行 USB 或硬件推理。
 - 新增 `./ncs2 check --json`：本机实测 9 个非系统 Mach-O 全为 arm64，逐项输出依赖边和 SHA-256；外部绝对路径以 basename 表示。三项非硬件回归覆盖递归依赖清单、x86_64/universal 架构拒绝及真实 launcher 的单一 JSON 输出和 notebook 写入；动态库自己的安装名不作为依赖边。
-- 清单扩展后的全新联网复现未完成：`results/reproduce-architecture-inventory-20261111/report.json` 在 fetch-online 遇到 DNS 失败；联网重试 `results/reproduce-architecture-inventory-retry-20261111/report.json` 遇到 early EOF，后续两次 fetch 因 shallow.lock 存在失败。两项均保留 failed，不声称此版本通过全新联网重建；上面的 141 项完整复现属于较早源码快照。
+- 历史记录：清单扩展后的首次联网复现曾因 DNS、early EOF 及保留的 `shallow.lock` 失败，见 `results/reproduce-architecture-inventory-20261111/report.json` 和 retry 报告。最新公开快照已在 2026-11-12 通过联网干净复建；历史失败仍保留，不再代表当前版本状态。
 - 算子扩展：新增 `avgpool_2x2`、`maxpool_2x2`、`concat_channels`、`broadcast_channels`，C++/Python 独立参考和序列化 op 类型断言通过；16 项 IR export/reload 全部通过，见 `results/suite-20261111-213348-c28a15aa/report.json`。正常 USB 权限下完整 16 项实机重跑，15 项通过，standalone FakeQuantize 仍 compile 拒绝；每项 3 次预热 + 20 次计时，15 项全部输出最大绝对误差 0。新增四项共核对 736 元素；硬件报告为 `results/suite-20261111-213649-db869fd8/report.json`，细表见 OPERATOR_SUITE.md。首次受限进程的 device_enumeration 失败及空 USB 列表如实保留，并经正常权限下 USB 读取和全套运行纠正，未记为设备断连或算子不支持。本轮使用已有锁定 runtime，未重复全新联网构建。
 - 扩展后完整非硬件回归再次运行：144 项，23.252 秒全部通过。两份完整算子报告及全部 XML/BIN 的 SHA-256、op 类型、源码/二进制版本和 765,624 个设备元素的累计检查数另外核对通过；本机记录见 `results/operator-expansion-development.md`、`results/operator-expansion-verification.json`。
 - 算子边界扩展：20 项 IR 导出及重新读取通过，报告 `results/suite-20261111-220041-5779c35b/report.json`；四项新增案例单独在 MYRIAD 通过，报告 `results/suite-20261111-220107-4635809b/report.json`，每项 3 次预热、20 次计时及逐元素核对。平均池化的 `exclude_pad` 初版参数和 oracle 曾不一致；核对 API 后改为 `false` 并增加 IR 属性断言，详见本地记录。
@@ -55,6 +56,11 @@
 - 三种现有 fixture 在 Swift 客户端中各复测 31 次、248 元素，共 93 次推理、744 个输出元素，最大绝对误差 0；各 worker shutdown 退出 0。完整日志在 `results/swift-multi-development.md`，核对报告在 `results/swift-multi-verification.json`。
 - 12 项无 USB 测试覆盖三种端口布局、无效 ready/输出、重复键、超长帧、数值故意扰动、局部输入拒绝、远端非致命恢复、超时、SIGTERM 忽略后的回收、正常退出和 deinit。模拟 worker 声称 hardware_executed 仅用于协议验证，不能计入实机证据。
 - 本轮完整非硬件回归 166 项、36.762 秒全部通过，包含已有 schema 1 测试和一个可选 Swift 架构清单测试。13 个非系统 Mach-O 纯 arm64；两个 Swift 程序的直接依赖均为 Apple 系统库，没有加载旧 OpenVINO ABI。
+
+### 最新提交干净复建闭环（2026-11-12）
+
+- 复建脚本新增独立 `build-swift` 阶段，要求 Swift 6，并在全量 arm64 审计前构建 schema 1/2 两个示例；因此 `check_arm64` 将检查 7 个 C++ 工具、2 个 Swift 客户端和被打包依赖。
+- 当前发布源码快照通过联网依赖获取、离线锁校验、OpenVINO/C++ 构建、Swift 构建、递归架构审计、20 项 IR 导出/回读、167 项非硬件回归及源码导出。完整 Swift-inclusive 报告固定保存在本地 `results/reproduce-swift-complete-20261112/report.json`；该文件及构建产物不纳入公开仓库。
 
 ### 当前进度口径与剩余项
 

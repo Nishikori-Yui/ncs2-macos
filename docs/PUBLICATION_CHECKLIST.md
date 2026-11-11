@@ -9,7 +9,7 @@
 - 不提交 `vendor/`、`build-arm64/`、`firmware-cache/`、`results/`、`ncs2_read_attempts.md`、临时日志、USB 序列号或带绝对机器路径的输出。
 - 重新确认 OpenVINO 源码、子模块和固件的来源、许可证与是否允许再分发；源码构建成功不等于固件可以打包发布。
 - 在另一台原生 arm64 macOS 上从锁文件复现 `fetch --offline`、`build`、`build-probe`、`check`；没有设备时至少完成 IR export 和 Python 回归。
-- 当前已有一台开发 Mac 上的隔离全新源码/依赖复现：较早快照的 8 个阶段全部通过，包含原生构建、架构审计、12 项 IR 和 141 项非硬件回归。2026-11-12 本机增量版本已通过 166 项非硬件回归、13 个 arm64 非系统 Mach-O 审计（含两个可选 Swift 客户端）和 Swift schema 2 实机验证。清单扩展后的两次全新联网复现均在 fetch-online 失败，见 `docs/IMPLEMENTATION.md`，不能用较早结果或增量测试替代本版联网复现或第二台 Mac 验收。较早通过快照见 `results/reproduce-physical-verified-20261111/report.json`。
+- 当前已有一台开发 Mac 上的隔离全新源码/依赖复现，且快照清单与 public main 一致：`docs/IMPLEMENTATION.md` 记录的 2026-11-12 干净复建含 Swift 6 构建阶段、13 个 arm64 非系统 Mach-O 审计、20 项 IR、167 项非硬件回归和源码导出。该结果是同一台开发机上的隔离复现，仍不能替代第二台 Mac 验收。
 - 全新构建的实机 smoke 已单独验证；它不是不访问 USB 的复现阶段之一，见 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`。
 - 对可搬移 runtime 做一次 clean-room 路径测试：不要依赖当前 checkout 的 CMake cache；检查 rpath、plugins.xml、libusb 路径和动态依赖。
 - 运行 `./ncs2 suite --export-only`，保存公开摘要而不是机器原始报告；硬件报告应移除序列号、总线地址和绝对路径。

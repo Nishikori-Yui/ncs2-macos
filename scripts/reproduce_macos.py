@@ -20,6 +20,27 @@ from export_source import export_source, check_output
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def reproduction_stages():
+    """Return the ordered, clean-room stages for the complete native toolchain."""
+    return [
+        ('environment', ['/bin/zsh', '-euc',
+            '[[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 ]]; '
+            'command -v python3 cmake pkg-config clang++ git xcrun lipo otool; '
+            'python3 --version; cmake --version; clang++ --version; xcrun swiftc --version; '
+            'pkg-config --modversion libusb-1.0; sw_vers']),
+        ('fetch-online', [sys.executable, '-B', 'scripts/bootstrap.py']),
+        ('fetch-offline', [sys.executable, '-B', 'scripts/bootstrap.py', '--offline']),
+        ('build', ['/bin/zsh', 'scripts/build_runtime.sh']),
+        ('build-swift', ['/bin/zsh', 'scripts/build_swift_clients.sh']),
+        ('architecture', ['/bin/zsh', 'scripts/check_arm64.sh']),
+        ('ir-export', [sys.executable, '-B', 'scripts/run_suite.py', '--export-only',
+                       '--output', 'results/ir-export']),
+        ('regression', [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-q']),
+        ('source-export', [sys.executable, '-B', 'scripts/export_source.py',
+                           '--output', 'dist/verified-source']),
+    ]
+
+
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -87,21 +108,7 @@ def main(argv=None):
         manifest = export_source(ROOT, checkout)
         report['source_inventory_sha256'] = manifest['summary']['inventory_sha256']
         assert not any((checkout / name).exists() for name in ('vendor', 'build-arm64', 'firmware-cache'))
-        stages = [
-            ('environment', ['/bin/zsh', '-euc',
-                '[[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 ]]; '
-                'command -v python3 cmake pkg-config clang++ git xcrun lipo otool; '
-                'python3 --version; cmake --version; clang++ --version; '
-                'pkg-config --modversion libusb-1.0; sw_vers']),
-            ('fetch-online', [sys.executable, '-B', 'scripts/bootstrap.py']),
-            ('fetch-offline', [sys.executable, '-B', 'scripts/bootstrap.py', '--offline']),
-            ('build', ['/bin/zsh', 'scripts/build_runtime.sh']),
-            ('architecture', ['/bin/zsh', 'scripts/check_arm64.sh']),
-            ('ir-export', [sys.executable, '-B', 'scripts/run_suite.py', '--export-only', '--output', 'results/ir-export']),
-            ('regression', [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-q']),
-            ('source-export', [sys.executable, '-B', 'scripts/export_source.py', '--output', 'dist/verified-source']),
-        ]
-        for stage, command in stages:
+        for stage, command in reproduction_stages():
             report['failed_stage'] = stage
             remaining = deadline - time.monotonic()
             if remaining <= 0:
