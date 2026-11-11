@@ -8,6 +8,7 @@ import platform
 import shlex
 import subprocess
 import sys
+import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -15,7 +16,46 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def run(*args, capture=False):
     print('+ ' + shlex.join(str(arg) for arg in args), flush=True)
-    return subprocess.run(args, check=True, text=True, stdout=subprocess.PIPE if capture else None).stdout
+    return subprocess.run(args, check=True, text=True, timeout=300,
+                          stdout=subprocess.PIPE if capture else None).stdout
+
+
+def fetch_revision(source, ov):
+    """A failed first transfer leaves only .git; permit a bounded safe retry."""
+    for attempt in range(1, 4):
+        try:
+            run('git', '-C', str(source), '-c', 'http.version=HTTP/1.1',
+                'fetch', '--depth', '1', 'origin', ov['commit'])
+            return
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            if attempt == 3:
+                raise
+            print(f'Pinned Git transfer failed (attempt {attempt}/3); retrying.', flush=True)
+            time.sleep(1)
+
+
+def prepare_source(source, ov, offline):
+    if not (source / '.git').exists():
+        if offline:
+            raise RuntimeError('Pinned source is missing; run ./ncs2 fetch online first.')
+        if source.exists():
+            raise RuntimeError(f'Refusing to overwrite existing non-Git path: {source}')
+        source.parent.mkdir(parents=True, exist_ok=True)
+        run('git', 'init', str(source))
+        run('git', '-C', str(source), 'remote', 'add', 'origin', ov['url'])
+    head = subprocess.run(['git', '-C', str(source), 'rev-parse', '--verify', 'HEAD'],
+                          capture_output=True, text=True, timeout=15)
+    if head.returncode != 0:
+        # Only a completely empty work tree with the expected origin can resume.
+        if offline:
+            raise RuntimeError('Pinned source checkout is incomplete; online fetch required.')
+        if any(path.name != '.git' for path in source.iterdir()):
+            raise RuntimeError('Refusing incomplete checkout with existing work-tree files.')
+        origin = run('git', '-C', str(source), 'remote', 'get-url', 'origin', capture=True).strip()
+        if origin != ov['url']:
+            raise RuntimeError('Incomplete checkout origin differs from lockfile.')
+        fetch_revision(source, ov)
+        run('git', '-C', str(source), 'checkout', '--detach', ov['commit'])
 
 
 def sha256(path):
@@ -32,16 +72,7 @@ def main():
     lock = json.loads((ROOT / 'toolchain.lock.json').read_text())
     ov = lock['openvino']
     source = ROOT / ov['directory']
-    if not (source / '.git').exists():
-        if args.offline:
-            raise RuntimeError('Pinned source is missing; run ./ncs2 fetch online first.')
-        if source.exists():
-            raise RuntimeError(f'Refusing to overwrite existing non-Git path: {source}')
-        source.parent.mkdir(parents=True, exist_ok=True)
-        run('git', 'init', str(source))
-        run('git', '-C', str(source), 'remote', 'add', 'origin', ov['url'])
-        run('git', '-C', str(source), 'fetch', '--depth', '1', 'origin', ov['commit'])
-        run('git', '-C', str(source), 'checkout', '--detach', ov['commit'])
+    prepare_source(source, ov, args.offline)
     actual = run('git', '-C', str(source), 'rev-parse', 'HEAD', capture=True).strip()
     if actual != ov['commit']:
         raise RuntimeError(f'Source revision mismatch: {actual}; existing checkout was not modified.')
@@ -92,6 +123,6 @@ def main():
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (OSError, RuntimeError, subprocess.CalledProcessError, zipfile.BadZipFile) as error:
+    except (OSError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired, zipfile.BadZipFile) as error:
         print(f'bootstrap: {error}', file=sys.stderr)
         sys.exit(1)

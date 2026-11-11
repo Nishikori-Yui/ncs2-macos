@@ -42,7 +42,7 @@ This 1x4 ReLU graph measures mostly the invocation/transport path. It is not a T
 
 The restricted execution context returned zero USB devices. Authorized direct macOS execution enumerated and opened NCS2 successfully. This distinction explains the initial empty `AVAILABLE_DEVICES` result; no XLink source patch was necessary. After inference process teardown, the USB reader again saw `03e7:2485`. Subsequent sampling now records 03e7:f63b while a compiled network is alive; see USB_LIFECYCLE.md.
 
-Known limits: tested on one Mac and one NCS2; not a clean-room rebuild on a second machine. The new bootstrap's existing-cache validation is tested; a fresh online clone/download through this new wrapper has not been exercised. Earlier direct official downloads and source build did succeed. Synthetic IR reload and three convolution cases are now tested; arbitrary user models, ONNX conversion, custom device kernels, thermal/power measurements, disconnect recovery, and long-duration tests remain unverified.
+Known limits: tested on one Mac and one NCS2; not a clean-room rebuild on a second machine. The new bootstrap has completed a fresh online clone/download and same-machine isolated build; an earlier transfer failure and the bounded retry recovery are both retained in the local evidence. Synthetic IR reload and three convolution cases are tested; arbitrary user models, ONNX conversion, custom device kernels, thermal/power measurements, physical disconnect recovery, and hour/day-scale soak tests remain unverified.
 
 ## Operator and lifecycle extension
 
@@ -53,6 +53,10 @@ Known limits: tested on one Mac and one NCS2; not a clean-room rebuild on a seco
 - At that phase the architecture audit covered six non-system files; the final audit expands it.
 - Lifecycle trace strictly requires bootloader observed, booted device observed, and bootloader observed after process exit. Final run passed.
 
-## Final integration, 2026-11-11
+## Final integration and fresh-source reproduction, 2026-11-11
 
 74 nonhardware tests passed. Final architecture audit covers 9 non-system Mach-O files (five tools/four dependency libraries), all thin arm64. Performance, strict worker/Python/Swift clients, WAV/CNN and synthetic anomalies, XLink debug reports, and runtime relocation are verified. See IMPLEMENTATION.md for report paths and release boundaries.
+
+A later isolated reproduction used the final fresh allowlisted source snapshot and freshly fetched pinned dependencies, then passed online fetch, offline input verification, native build, architecture audit, all 12 IR exports, 133 nonhardware tests, and source-export verification. All eight stages exited zero. The run is recorded in `results/reproduce-physical-verified-20261111/report.json`; its scope is `fresh-source-and-dependencies-on-current-host` and `hardware_executed` is false. A separate smoke using the newly built runtime discovered MYRIAD and validated `[0, 0.5, 0, 3]` with zero maximum absolute error (`results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`). The two records are intentionally separate.
+
+This is a clean isolated rebuild on the development Mac, not a second-Mac result. The optional physical self-hosted workflow parses and targets the declared physical arm64 runner labels, but the public repository currently has no self-hosted runners and the workflow has not run. Earlier `curl 18` and DNS failures are preserved; retry recovery is tested and the final isolated run passed. Full evidence and limits are in IMPLEMENTATION.md and REPRODUCTION.md.

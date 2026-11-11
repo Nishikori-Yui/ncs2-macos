@@ -31,6 +31,7 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 
 ```sh
 ./ncs2 fetch           # Official source + firmware; pin/check every input
+./ncs2 reproduce       # Fresh source snapshot + online inputs/build/offline tests; no USB
 ./ncs2 fetch --offline # Verify the existing local source/cache without network
 ./ncs2 build           # Native arm64 runtime + MYRIAD + IR frontend + probe
 ./ncs2 check           # Recursive architecture check for non-system libraries
@@ -79,3 +80,5 @@ The persistent worker protocol is documented in docs/WORKER_API.md. The full imp
 Local runtime bundles include firmware and dependencies; they are not cleared for redistribution. Only copied artifacts have their loader paths changed and receive ad-hoc signatures. Source exports exclude vendor/build/firmware/results/raw notebooks and reject known local home/project paths. No command creates a remote repository or publishes a release.
 
 See CONTRIBUTING.md for offline and hardware checks, docs/WORKER_STABILITY.md for the bounded soak/restart experiment, and docs/SOURCE_EXPORT.md for source inventory checks. A second Mac, license selection and signed/notarized distribution remain separate release requirements.
+
+See [REPRODUCTION.md](docs/REPRODUCTION.md) for fresh local rebuilds and the optional manual workflow on a physical self-hosted Mac. An isolated fresh-source/dependency rebuild and a separate NCS2 smoke passed on the development Mac; a second Mac is still unverified. GitHub-hosted macOS virtual machines are not used.

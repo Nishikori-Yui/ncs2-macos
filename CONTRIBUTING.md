@@ -4,7 +4,11 @@ The supported development path is native arm64 macOS. Keep camera integrations o
 
 ## Local checks
 
-Run from a checkout whose path may contain spaces:
+For an isolated online rebuild without reusing existing source/dependency/build caches:
+
+    ./ncs2 reproduce --timeout 3600
+
+This requests no USB operations. See docs/REPRODUCTION.md for its scope and the optional manual workflow for a physical self-hosted Mac. Existing local trees can use the shorter sequence below. Run from a checkout whose path may contain spaces:
 
     ./ncs2 fetch --offline
     ./ncs2 build-probe

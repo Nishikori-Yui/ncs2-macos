@@ -21,7 +21,14 @@ ROOT_FILES = frozenset({
 DIRECTORY_SUFFIXES = {
     'docs': {'.md'}, 'scripts': {'.py', '.sh'},
     'tests': {'.py'}, 'examples': {'.swift'},
+    '.github/workflows': {'.yml'},
 }
+SOURCE_DIRECTORY_PATHS = frozenset(
+    '/'.join(parts[:index])
+    for directory in DIRECTORY_SUFFIXES
+    for parts in [PurePosixPath(directory).parts]
+    for index in range(1, len(parts) + 1)
+)
 REQUIRED_FILES = ROOT_FILES | frozenset({
     'ncs2_apps.cpp', 'ncs2_lab.cpp', 'ncs2_models.hpp', 'ncs2_openvino_probe.cpp',
     'ncs2_perf.cpp', 'ncs2_worker.cpp', 'examples/NCS2WorkerClient.swift',
@@ -33,6 +40,8 @@ REQUIRED_FILES = ROOT_FILES | frozenset({
     'scripts/trace_lifecycle.py', 'scripts/trace_xlink.py', 'scripts/usb_passive.py',
     'scripts/worker_demo.py',
     'scripts/worker_soak.py', 'docs/WORKER_STABILITY.md',
+    '.github/workflows/native-arm64.yml',
+    'scripts/reproduce_macos.py',
 })
 EXCLUDED = ['vendor', 'third_party', 'build*', 'dist', 'firmware-cache', 'results',
             'raw notebook/logs', 'runtime binaries', 'caches', 'nested source directories']
@@ -49,6 +58,8 @@ def allowed_path(name):
             part in ('.', '..') or not re.fullmatch(r'[A-Za-z0-9_.-]+', part)
             for part in path.parts):
         return False
+    if name == '.github/workflows/native-arm64.yml':
+        return True
     if len(path.parts) == 1 and name in ROOT_FILES | {'LICENSE'}:
         return True
     if path.suffix not in SOURCE_SUFFIXES:
@@ -88,6 +99,20 @@ def open_directory(path, create=False):
         return fd
     except BaseException:
         os.close(fd)
+        raise
+
+
+def open_relative_directory(directory_fd, path):
+    """Open each selected source/output directory without following symlinks."""
+    current = os.dup(directory_fd)
+    try:
+        for part in PurePosixPath(path).parts:
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
+            os.close(current)
+            current = child
+        return current
+    except BaseException:
+        os.close(current)
         raise
 
 
@@ -142,7 +167,7 @@ def collect_sources(root):
                         raise ValueError('Source candidate exceeds total size limit')
         collect(root_fd, '')
         for directory in DIRECTORY_SUFFIXES:
-            fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root_fd)
+            fd = open_relative_directory(root_fd, directory)
             try:
                 collect(fd, directory + '/')
             finally:
@@ -181,7 +206,7 @@ def make_manifest(sources):
 def validate_output_path(output, root):
     output = absolute_path(output)
     # Do not create new files in an input directory, even when output is empty.
-    for directory in DIRECTORY_SUFFIXES:
+    for directory in SOURCE_DIRECTORY_PATHS:
         if output.is_relative_to(root / directory):
             raise ValueError('Output must not be inside a selected source directory')
     # Check all existing components before creating even the first output parent.
@@ -220,13 +245,16 @@ def export_source(root, output):
         for name, (data, executable) in sources.items():
             parts = PurePosixPath(name).parts
             fd = output_fd
-            if len(parts) == 2:
-                try:
-                    os.mkdir(parts[0], dir_fd=output_fd)
-                except FileExistsError:
-                    pass
-                fd = os.open(parts[0], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=output_fd)
             try:
+                for directory in parts[:-1]:
+                    try:
+                        os.mkdir(directory, dir_fd=fd)
+                    except FileExistsError:
+                        pass
+                    child = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+                    if fd != output_fd:
+                        os.close(fd)
+                    fd = child
                 write_new(fd, parts[-1], data, executable)
             finally:
                 if fd != output_fd:
@@ -267,23 +295,31 @@ def check_output(output):
                     or not re.fullmatch('[0-9a-f]{64}', record['sha256'])):
                 raise ValueError('Invalid manifest file record: ' + name)
         sources = {}
-        directories = {str(PurePosixPath(name).parent) for name in records if '/' in name}
-        expected_root = {name for name in records if '/' not in name} | directories | {MANIFEST}
-        if set(os.listdir(fd)) != expected_root:
-            raise ValueError('Unexpected or missing output entries')
-        for name in sorted(records):
-            if '/' not in name:
-                sources[name] = read_regular(fd, name)
-        for directory in sorted(directories):
-            child = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+        expected_by_directory = {'': {MANIFEST}}
+        for name in records:
+            parts = PurePosixPath(name).parts
+            for index in range(len(parts)):
+                parent = '/'.join(parts[:index])
+                expected_by_directory.setdefault(parent, set()).add(parts[index])
+                if index < len(parts) - 1:
+                    expected_by_directory.setdefault('/'.join(parts[:index + 1]), set())
+        for directory, expected in expected_by_directory.items():
+            directory_fd = fd if not directory else open_relative_directory(fd, directory)
             try:
-                expected = {name.split('/')[1] for name in records if name.startswith(directory + '/')}
-                if set(os.listdir(child)) != expected:
-                    raise ValueError('Unexpected or missing entries in ' + directory)
-                for leaf in sorted(expected):
-                    sources[directory + '/' + leaf] = read_regular(child, leaf)
+                if set(os.listdir(directory_fd)) != expected:
+                    raise ValueError('Unexpected or missing output entries in ' + (directory or '.'))
             finally:
-                os.close(child)
+                if directory:
+                    os.close(directory_fd)
+        for name in sorted(records):
+            parts = PurePosixPath(name).parts
+            parent = '/'.join(parts[:-1])
+            directory_fd = fd if not parent else open_relative_directory(fd, parent)
+            try:
+                sources[name] = read_regular(directory_fd, parts[-1])
+            finally:
+                if parent:
+                    os.close(directory_fd)
         for name, (data, _) in sources.items():
             validate_text(name, data)
         if sum(len(data) for data, _ in sources.values()) > MAX_TOTAL_BYTES:

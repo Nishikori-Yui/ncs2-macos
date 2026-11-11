@@ -95,6 +95,44 @@ class ExportTests(unittest.TestCase):
         (self.root / 'scripts').symlink_to(self.base / 'external-scripts', target_is_directory=True)
         self.rejected_before_creation()
 
+    def test_workflow_is_exactly_allowlisted_and_hash_checked(self):
+        allowed = '.github/workflows/native-arm64.yml'
+        self.assertTrue(exporter.allowed_path(allowed))
+        for name in ('.github/workflows/foreign.yml', '.github/private.yml',
+                     '.github/workflows/nested/foreign.yml'):
+            self.assertFalse(exporter.allowed_path(name))
+            self.put(name, b'ignored secret fixture')
+        manifest = self.export()
+        self.assertIn(allowed, manifest['files'])
+        self.assertEqual(set(manifest['files']), exporter.REQUIRED_FILES)
+        (self.output / allowed).write_bytes(b'changed')
+        with self.assertRaises(ValueError):
+            exporter.check_output(self.output)
+
+    def test_each_workflow_directory_rejects_symlinks(self):
+        for directory in ('.github/workflows', '.github'):
+            with self.subTest(directory=directory):
+                original = self.root / directory
+                moved = self.base / 'external-workflows'
+                original.rename(moved)
+                original.symlink_to(moved, target_is_directory=True)
+                self.rejected_before_creation()
+                original.unlink()
+                moved.rename(original)
+
+    def test_nested_workflow_output_symlink_is_rejected(self):
+        self.export()
+        original = self.output / '.github/workflows'
+        moved = self.base / 'moved-workflows'
+        original.rename(moved)
+        original.symlink_to(moved, target_is_directory=True)
+        with self.assertRaises(OSError):
+            exporter.check_output(self.output)
+
+    def test_output_inside_workflow_parent_is_rejected(self):
+        with self.assertRaises(ValueError):
+            exporter.export_source(self.root, self.root / '.github/candidate')
+
     def test_symlink_root_parent(self):
         alias = self.base / 'alias'
         alias.symlink_to(self.root, target_is_directory=True)

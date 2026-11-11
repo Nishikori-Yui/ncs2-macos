@@ -4,7 +4,7 @@
 
 | 阶段 | 实现 | 证据与边界 |
 | --- | --- | --- |
-| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 9 个非系统 Mach-O 均为 arm64；本机通过，新机器未复现 |
+| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 9 个非系统 Mach-O 均为 arm64；隔离的新源码/依赖在本机完整复现，第二台 Mac 未验收 |
 | 2 算子/IR | 12 个 IR v11 往返；独立标量参考 | 11 个实机通过，standalone FakeQuantize 编译拒绝；默认套件保留非零退出 |
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
 | 4 现代 API | 常驻 worker、严格版本化 JSON/张量、Python/Swift 客户端 | 超时/进程回收；内置模型及外部静态 f32 IR；单输入输出，16,384 元素上限 |
@@ -23,10 +23,13 @@
 - 搬移：results/relocation-20261111-1734/report.json，动态库来自副本；IR frontend 搬移也通过。
 - 长跑：results/worker-soak-20261111-180642-c04d3699/report.json，同一 worker 120.002 秒、71,703 次推理，65 组输入，所有输出正确；RSS 12 次采样为 44,957,696～45,039,616 bytes，3 次正常重启退出 0。随后 SIGKILL 后 5 次启动均未 ready，整项实验 failed；没有声称进程强杀后可立即自动恢复。首次同类失败也保留在 results/worker-soak-20261111-180011-73a4672d/report.json。详见 WORKER_STABILITY.md。
 - 恢复扩展：独立 recovery-only 与完整默认流程均在第 6 次尝试成功，ready 分别为强杀后 16.575/16.663 秒；前 5 次 USB 为 booted f63b，第 6 次为 bootloader 2485。默认预算改为 10 次，每次失败间隔 3 秒。完整新报告 results/worker-soak-20261111-183417-b6f48cce/report.json：120.001 秒、73,569 次 soak 推理，全阶段 73,574 次、2,648,664 输出核对，正常重启与强杀恢复均通过。仅证明本机两次有界恢复观测，不等于物理拔插恢复。
+- 全新依赖复现：最终源码快照报告 `results/reproduce-physical-verified-20261111/report.json` 的 8 个阶段全部退出码为 0；全新源码快照和依赖、离线锁定校验、原生 arm64 构建、架构审计、12 项 IR export/reload、133 项非硬件回归与源码导出均通过。报告标记 `fresh-source-and-dependencies-on-current-host`、`hardware_executed=false`。此前的 `curl 18` / early EOF 和本轮 DNS 解析失败都保留；有界重试后完成最终复现。
+- 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
+- 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；当前公开仓库的自托管 runner 数量为 0，未触发 workflow，也未做第二台 Mac 验收。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。
 
 ## 发行和扩展边界
 
-原创代码许可证未选择；公开 repo 已获用户授权，正式开源发行尚未完成。固件/本地包再分发未确认，包仅本地用。第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。短时 soak、正常重启与扩大有限预算后的进程强杀恢复已验证；立即恢复及原 5 次预算测试仍失败。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
+原创代码许可证未选择；公开 repo 已获用户授权，正式开源发行尚未完成。固件/本地包再分发未确认，包仅本地用。同机隔离复现和从全新构建执行的独立 smoke 已通过，但第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。短时 soak、正常重启与扩大有限预算后的进程强杀恢复已验证；立即恢复及原 5 次预算测试仍失败。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
 
 本地实现阶段已有验收证据，完整长期目标保留 active，后续继续许可选择、跨机器复现和更广模型测试。
