@@ -5,7 +5,7 @@
 | 阶段 | 实现 | 证据与边界 |
 | --- | --- | --- |
 | 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 9 个非系统 Mach-O 均为 arm64；隔离的新源码/依赖在本机完整复现，第二台 Mac 未验收 |
-| 2 算子/IR | 20 个 IR v11 往返；独立标量参考及序列化属性断言 | 此前完整 16 项中 15 项实机通过、FakeQuantize 编译拒绝；另 4 项增量实机通过 |
+| 2 算子/IR | 20 个 IR v11 往返；独立标量参考及序列化属性断言 | 完整 20 项实机运行中 19 项通过、FakeQuantize 编译拒绝 |
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
 | 4 现代 API | 常驻 worker、严格版本化 JSON/张量、Python/Swift 客户端 | 超时/进程回收；内置模型及外部静态 f32 IR；单输入输出，16,384 元素上限 |
 | 5 无摄像头样例 | WAV 读回→声谱→未训练小 CNN；合成时序异常分数 | 各 3 次实机核对；异常恰为样本 42/43；音频不是分类器 |
@@ -29,6 +29,7 @@
 - 算子扩展：新增 `avgpool_2x2`、`maxpool_2x2`、`concat_channels`、`broadcast_channels`，C++/Python 独立参考和序列化 op 类型断言通过；16 项 IR export/reload 全部通过，见 `results/suite-20261111-213348-c28a15aa/report.json`。正常 USB 权限下完整 16 项实机重跑，15 项通过，standalone FakeQuantize 仍 compile 拒绝；每项 3 次预热 + 20 次计时，15 项全部输出最大绝对误差 0。新增四项共核对 736 元素；硬件报告为 `results/suite-20261111-213649-db869fd8/report.json`，细表见 OPERATOR_SUITE.md。首次受限进程的 device_enumeration 失败及空 USB 列表如实保留，并经正常权限下 USB 读取和全套运行纠正，未记为设备断连或算子不支持。本轮使用已有锁定 runtime，未重复全新联网构建。
 - 扩展后完整非硬件回归再次运行：144 项，23.252 秒全部通过。两份完整算子报告及全部 XML/BIN 的 SHA-256、op 类型、源码/二进制版本和 765,624 个设备元素的累计检查数另外核对通过；本机记录见 `results/operator-expansion-development.md`、`results/operator-expansion-verification.json`。
 - 算子边界扩展：20 项 IR 导出及重新读取通过，报告 `results/suite-20261111-220041-5779c35b/report.json`；四项新增案例单独在 MYRIAD 通过，报告 `results/suite-20261111-220107-4635809b/report.json`，每项 3 次预热、20 次计时及逐元素核对。平均池化的 `exclude_pad` 初版参数和 oracle 曾不一致；核对 API 后改为 `false` 并增加 IR 属性断言，详见本地记录。
+- 完整 20 项硬件复跑：`results/suite-20261111-220616-682f3359/report.json`，19 项通过，FakeQuantize 编译拒绝，套件按设计退出 1。成功项共核对 766,222 个输出元素，最大绝对误差均为 0；独立脚本核对了案例、运行状态、IR 哈希和构建来源。
 - 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
 - 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；当前公开仓库的自托管 runner 数量为 0，未触发 workflow，也未做第二台 Mac 验收。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。

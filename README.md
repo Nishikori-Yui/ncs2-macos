@@ -67,7 +67,7 @@ This is an experimental source preview, with no packaged release. The publicatio
 
 ## Operator and lifecycle experiments
 
-All **20 IR fixtures** export and reload. A previous complete 16-case hardware run reported **15 passed, 1 failed**; a separate run of four additional pooling, width-concatenation and spatial-broadcast cases passed on MYRIAD. Standalone FakeQuantize was rejected during MYRIAD compilation. The default suite exits nonzero so this limitation remains visible. These are specific static graphs and shapes, not general operator compatibility claims. Every run creates a fresh results/ directory with IR files, artifact hashes, per-case logs, and a structured report. See docs/OPERATOR_SUITE.md and docs/USB_LIFECYCLE.md for details.
+All **20 IR fixtures** export and reload. A complete hardware run reported **19 passed on MYRIAD, 1 rejected at compilation**: standalone FakeQuantize is unsupported by this compiler. The default suite exits nonzero so this limitation remains visible. These are specific static graphs and shapes, not general operator compatibility claims. Every run creates a fresh results/ directory with IR files, artifact hashes, per-case logs, and a structured report. See docs/OPERATOR_SUITE.md and docs/USB_LIFECYCLE.md for details.
 
 The persistent worker protocol is documented in docs/WORKER_API.md. The full implementation status is tracked in docs/IMPLEMENTATION.md. USB lifecycle and XLink debug observations, repeated concurrency/preprocessing experiments, and a persistent worker with typed JSON tensors are implemented. Camera-free application evidence is described in docs/APPLICATIONS.md. See docs/PERFORMANCE.md, docs/WORKER_API.md and docs/XLINK_DEBUG.md for measurement boundaries and supported scope.
 
