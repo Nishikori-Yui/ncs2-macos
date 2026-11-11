@@ -33,10 +33,10 @@ SOURCE_DIRECTORY_PATHS = frozenset(
 REQUIRED_FILES = ROOT_FILES | frozenset({
     'ncs2_apps.cpp', 'ncs2_lab.cpp', 'ncs2_models.hpp', 'ncs2_openvino_probe.cpp',
     'ncs2_perf.cpp', 'ncs2_worker.cpp', 'ncs2_multi_io.cpp', 'ncs2_multi_worker.cpp',
-    'examples/NCS2WorkerClient.swift',
+    'examples/NCS2WorkerClient.swift', 'examples/NCS2MultiWorkerClient.swift',
     'docs/SOURCE_EXPORT.md', 'tests/test_check_arm64.py', 'tests/test_export_source.py',
-    'tests/test_multi_worker.py', 'tests/test_usb_parser.py',
-    'scripts/bootstrap.py', 'scripts/build_probe.sh', 'scripts/build_runtime.sh',
+    'tests/test_multi_worker.py', 'tests/test_swift_multi_client.py', 'tests/test_usb_parser.py',
+    'scripts/bootstrap.py', 'scripts/build_probe.sh', 'scripts/build_runtime.sh', 'scripts/build_swift_clients.sh',
     'scripts/check_arm64.py', 'scripts/check_arm64.sh', 'scripts/export_source.py',
     'scripts/log_run.py', 'scripts/package_runtime.py', 'scripts/run_apps.py',
     'scripts/run_perf.py', 'scripts/run_probe.sh', 'scripts/run_suite.py',

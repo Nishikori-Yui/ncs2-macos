@@ -1,4 +1,4 @@
-# Local worker API, schema 1
+# Local worker APIs
 
 The native arm64 C++ worker owns the pinned MYRIAD runtime and compiled graph. Python and Swift clients exchange UTF-8 JSON lines through pipes and do not load OpenVINO libraries into their own processes. This is a local experimental API, not a remote service.
 
@@ -42,7 +42,29 @@ Python usage:
         result = worker.infer([[1, 2, 3, 4], [0.5, 1, 1.5, 2]])
         print([tensor["data"] for tensor in result["outputs"]])
 
-On the local NCS2, each schema-2 topology was run for 31 requests (248 checked output elements per case), with maximum absolute error 0.0: the default 2→2 add/subtract graph, unequal-shaped 2→1 concat, and 1→2 split. The direct C++ experiment also ran each topology for 23 requests. XML export reload checks the expected IR ports and shapes before an experiment starts. `ncs2_multi_client.py` is the schema-2 client. Swift and the general-purpose schema-1 client have not yet been extended to schema 2. The packaged local runtime includes the schema-2 worker, but it remains a local-only artifact: firmware and third-party redistribution terms are unresolved.
+On the local NCS2, each schema-2 topology was run for 31 requests (248 checked output elements per case), with maximum absolute error 0.0: the default 2→2 add/subtract graph, unequal-shaped 2→1 concat, and 1→2 split. The direct C++ experiment also ran each topology for 23 requests. XML export reload checks the expected IR ports and shapes before an experiment starts. Python uses `ncs2_multi_client.py`; Swift uses the independent client described below. Schema-1 clients retain their original protocol. The packaged local runtime includes the schema-2 worker, but it remains a local-only artifact: firmware and third-party redistribution terms are unresolved.
+
+### Swift schema 2
+
+Build the two native arm64 Swift examples with a Swift 6 compiler:
+
+    ./ncs2 build-swift
+    ./ncs2_log_run.sh Swift-multi-demo build-arm64/NCS2MultiWorkerClient --case concat-unequal --model results/concat-fixture/multi_concat_unequal.xml
+
+Use `--case add-sub|concat-unequal|split-halves` to select the demo's scalar reference. The default is add-sub and 31 requests. `--worker PATH` and `--plugins PATH` support a local copied runtime; defaults assume the repository working directory. `--timeout`, `--startup-timeout` and `--exit-timeout` bound request I/O, readiness and normal exit; each accepts finite seconds in (0,300]. The reusable `NCS2MultiWorkerClient` accepts any model satisfying the worker's static f32 port contract, while the demo only verifies the three named fixtures.
+
+To reuse the client, compile `examples/NCS2WorkerClient.swift` and `examples/NCS2MultiWorkerClient.swift` with both `-D NCS2_CLIENT_LIBRARY` and `-D NCS2_MULTI_CLIENT_LIBRARY`, then supply your own entry point. The first file provides the shared bounded JSON-lines transport and duplicate-key decoder. The synchronous API is:
+
+    let client = try NCS2MultiWorkerClient(worker: workerURL, plugins: pluginsURL, model: modelURL)
+    defer { try? client.close() }
+    let tensors = try client.infer([[Float(1), 2, 3], [Float(4), 5, 6, 7, 8]])
+    print(tensors[0].shape, tensors[0].data)
+    _ = try client.health()
+    _ = try client.shutdown()
+
+Keep each instance on one calling thread. `infer` validates local input count/finiteness before sending, checks all output indices/shapes/f32 values, and maintains the expected health counter. Nonfatal remote errors preserve the connection; protocol failures, deadlines and explicit `close` terminate and reap the owned worker, escalating to SIGKILL when needed. `shutdown` performs the normal acknowledgement and checks exit zero. Cleanup owns one process; workers must not spawn descendants. This is a synchronous local client, not a Swift concurrency or network service API.
+
+The Swift demo ran all three fixtures on the local NCS2: 93 total requests, 744 independently checked output elements, maximum absolute error 0, and clean exit zero per worker. Its 12 hardware-free tests compile both the demo and a reusable-client harness; synthetic workers test topology contracts, malformed data, numerical corruption, timeouts, forced reaping and nonfatal recovery. Synthetic test success is not device evidence.
 
 ## Requests and responses
 

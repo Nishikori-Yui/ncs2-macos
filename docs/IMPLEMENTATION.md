@@ -1,13 +1,13 @@
 # 实施计划与验收证据
 
-截至 2026-11-11，本机原型六阶段均已有代码和验证产物。公开仓库为 [ncs2-macos](https://github.com/Nishikori-Yui/ncs2-macos)，内容为实验源码预览；原创许可证仍待选择，没有二进制/固件发行。没有使用 Linux、虚拟机、Rosetta、x86_64 runtime 或摄像头。
+截至 2026-11-12，本机原型六阶段均已有代码和验证产物。公开仓库为 [ncs2-macos](https://github.com/Nishikori-Yui/ncs2-macos)，内容为实验源码预览；原创许可证仍待选择，没有二进制/固件发行。没有使用 Linux、虚拟机、Rosetta、x86_64 runtime 或摄像头。
 
 | 阶段 | 实现 | 证据与边界 |
 | --- | --- | --- |
-| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 11 个非系统 Mach-O 均为 arm64；隔离的新源码/依赖在本机完整复现，第二台 Mac 未验收 |
+| 1 原生工具链 | 固定 OpenVINO 2022.3.2 源码、子模块和固件；原生编译 MYRIAD | 含两个可选 Swift 示例时 13 个非系统 Mach-O 均为 arm64；较早快照在本机隔离复现，第二台 Mac 未验收 |
 | 2 算子/IR | 20 个 IR v11 往返；独立标量参考及序列化属性断言 | 完整 20 项实机运行中 19 项通过、FakeQuantize 编译拒绝 |
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
-| 4 现代 API | schema 1 单张量 Python/Swift；schema 2 多张量 native worker/Python client | 静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；MYRIAD 实测 2→2、异形 2→1、1→2 |
+| 4 现代 API | schema 1/2 均有 Python/Swift 客户端和 native worker | 静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；两种语言实测 2→2、异形 2→1、1→2 |
 | 5 无摄像头样例 | WAV 读回→声谱→未训练小 CNN；合成时序异常分数 | 各 3 次实机核对；异常恰为样本 42/43；音频不是分类器 |
 | 6 repo 准备 | 可搬移本地 runtime、来源/许可记录、允许清单源码导出 | 新路径实机与 IR 加载通过；原创许可/第二台 Mac/发行签名仍待决定或验证 |
 
@@ -40,7 +40,7 @@
 
 原创代码许可证未选择；公开 repo 已获用户授权，正式开源发行尚未完成。固件/本地包再分发未确认，包仅本地用。同机隔离复现和从全新构建执行的独立 smoke 已通过，但第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。短时 soak、正常重启与扩大有限预算后的进程强杀恢复已验证；立即恢复及原 5 次预算测试仍失败。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
 
-本地实现阶段已有验收证据，完整长期目标保留 active，后续继续许可选择、跨机器复现和更广模型测试。
+本地实现阶段已有验收证据，完整长期目标保留 active。后续优先完成最新源码快照的干净重建、较长稳定性验收、第二台实体 Mac 复现和许可证准备；模型兼容性扩展保留为后续实验。
 
 ### schema 2 非对称端口补充
 
@@ -48,3 +48,22 @@
 - 两个 Python worker case 各在 MYRIAD 运行 31 次、检查 248 个元素，最大绝对误差 0。直接 C++ 路径和既有 2→2 加减默认路径也各运行 23 次、检查 184 个元素。完整原始命令和输出：`results/asymmetric-ports-development.md`，合并入本机 `ncs2_read_attempts.md`。
 - 完整非硬件回归为 153 项全部通过，11 个非系统 Mach-O 纯 arm64。默认 add-sub 的 worker 路径也复跑 31 次，三个 worker case 合计检查 744 个元素；三个直接 C++ case 合计 552 个元素，本轮实机累计 162 次推理、1296 个输出元素核对。模型哈希、源码和构建哈希的独立核对报告保存在 `results/asymmetric-ports-verification.json`。
 - 这证明选定静态 concat/split 图及 schema 的异形端口编排；不是任意 Concat/Split 属性或任意模型兼容性的承诺。试验排除了摄像头、Linux、虚拟机、Rosetta 与 x86_64 runtime。
+
+### Swift schema 2 补充（2026-11-12）
+
+- 新增独立 `NCS2MultiWorkerClient`，复用既有同步 JSON-lines 管道、绝对 deadline 和严格 JSON 解码检查；单输入输出 schema 1 保持原行为。`./ncs2 build-swift` 构建两个 Swift 6 原生 arm64 示例。
+- 三种现有 fixture 在 Swift 客户端中各复测 31 次、248 元素，共 93 次推理、744 个输出元素，最大绝对误差 0；各 worker shutdown 退出 0。完整日志在 `results/swift-multi-development.md`，核对报告在 `results/swift-multi-verification.json`。
+- 12 项无 USB 测试覆盖三种端口布局、无效 ready/输出、重复键、超长帧、数值故意扰动、局部输入拒绝、远端非致命恢复、超时、SIGTERM 忽略后的回收、正常退出和 deinit。模拟 worker 声称 hardware_executed 仅用于协议验证，不能计入实机证据。
+- 本轮完整非硬件回归 166 项、36.762 秒全部通过，包含已有 schema 1 测试和一个可选 Swift 架构清单测试。13 个非系统 Mach-O 纯 arm64；两个 Swift 程序的直接依赖均为 Apple 系统库，没有加载旧 OpenVINO ABI。
+
+### 当前进度口径与剩余项
+
+按六阶段交付项粗估，本机可用原型约 90%；包含第二台 Mac 与正式开源准备约 75%–80%。这是规划估算，不是测试覆盖率或已测量工时。
+
+当前 Swift 批次已通过整合回归和实机验证；后续按以下项收尾：
+
+1. 用包含最新客户端的源码快照做干净重建；较早通过快照不能代替当前版本的复现证据。
+2. 延长稳定性观察；现有约两分钟的 soak 不支持小时或天级稳定性结论。
+3. 第二台实体 arm64 Mac 验收和原创许可证选择；二进制/固件再分发与签名仅在决定发布编译产物时单独处理。
+
+本机可执行的收尾预计分 2–3 批推进。跨设备和发布决策依赖额外条件，不估算总工时；不把新增任意模型或算子作为无限延长首版收尾的前提。

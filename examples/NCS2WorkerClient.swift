@@ -22,7 +22,7 @@ struct NCS2RemoteError: Error, CustomStringConvertible {
     let description: String
 }
 
-private func systemError(_ operation: String) -> NCS2ClientError {
+func systemError(_ operation: String) -> NCS2ClientError {
     let code = errno
     return NCS2ClientError("\(operation): \(String(cString: strerror(code))) (errno=\(code))")
 }
@@ -180,7 +180,7 @@ private struct JSONScope {
 // JSONDecoder enforces field types but accepts duplicate object keys. Reject those
 // (including escaped aliases), excessive nesting, and trailing commas before decoding.
 // String/value grammar and required fields are then checked by Foundation's decoder.
-private func decodeFrame<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+func decodeFrame<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
     guard String(data: data, encoding: .utf8) != nil else {
         throw NCS2ClientError("Worker JSON must be UTF-8")
     }

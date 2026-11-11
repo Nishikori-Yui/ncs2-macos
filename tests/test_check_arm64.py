@@ -75,6 +75,18 @@ class ArchitectureAuditTests(unittest.TestCase):
     @patch.object(check_arm64.platform, 'system', return_value='Darwin')
     @patch.object(check_arm64.platform, 'machine', return_value='arm64')
     @patch.object(check_arm64.subprocess, 'check_output')
+    def test_optional_swift_examples_are_audited_when_present(self, command, _machine, _system):
+        command.side_effect = self.mock_command
+        for name in ('NCS2WorkerClient', 'NCS2MultiWorkerClient'):
+            (self.probe.parent / name).write_bytes(name.encode())
+        report = check_arm64.audit()
+        self.assertEqual(report['non_system_macho_count'], 13)
+        self.assertTrue({'build-arm64/NCS2WorkerClient', 'build-arm64/NCS2MultiWorkerClient'}
+                        <= {item['path'] for item in report['artifacts']})
+
+    @patch.object(check_arm64.platform, 'system', return_value='Darwin')
+    @patch.object(check_arm64.platform, 'machine', return_value='arm64')
+    @patch.object(check_arm64.subprocess, 'check_output')
     def test_rejects_universal_or_x86_artifact(self, command, _machine, _system):
         for architectures in ('x86_64', 'arm64 x86_64'):
             with self.subTest(architectures=architectures):
