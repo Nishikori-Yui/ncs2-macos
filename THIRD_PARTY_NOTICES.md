@@ -8,6 +8,8 @@ This toolkit has not yet selected a license for its own original source. The pub
 - libusb is resolved from the local installation and is not bundled.
 - `vendor/`, `build-arm64/`, firmware, binary artifacts, raw local notebooks, and results are excluded from public commits. `.gitignore` does not redact a file deliberately force-added; review the exact publication file list.
 
+The source-level inventory is summarized in [`docs/THIRD_PARTY_REVIEW.md`](docs/THIRD_PARTY_REVIEW.md). It records the pinned OpenVINO revision, runtime notice file, submodule license evidence and firmware hashes. It does not clear firmware or copied runtime binaries for redistribution.
+
 Primary compatibility references checked on 2026-11-11:
 
 ```text

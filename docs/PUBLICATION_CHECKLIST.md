@@ -7,7 +7,7 @@
 - 选择并提交本项目原创代码的许可证；`THIRD_PARTY_NOTICES.md` 目前保留“尚未选择”。公开可见不等于已授予开源许可；当前源码预览不声称完成开源发行。
 - 保留 `README.md`、`docs/`、`scripts/`、`ncs2`、`ncs2_log_run.sh`、C++/Python/Swift 源码、锁文件和小型合成 fixture。
 - 不提交 `vendor/`、`build-arm64/`、`firmware-cache/`、`results/`、`ncs2_read_attempts.md`、临时日志、USB 序列号或带绝对机器路径的输出。
-- 重新确认 OpenVINO 源码、子模块和固件的来源、许可证与是否允许再分发；源码构建成功不等于固件可以打包发布。
+- 重新确认 OpenVINO 源码、子模块和固件的来源、许可证与是否允许再分发；来源盘点已记录在 [`docs/THIRD_PARTY_REVIEW.md`](THIRD_PARTY_REVIEW.md)，但源码构建成功不等于固件可以打包发布，固件再分发仍未放行。
 - 在另一台原生 arm64 macOS 上从锁文件复现 `fetch --offline`、`build`、`build-probe`、`check`；没有设备时至少完成 IR export 和 Python 回归。
 - 当前已有一台开发 Mac 上的隔离全新源码/依赖复现，且快照清单与 public main 一致：`docs/IMPLEMENTATION.md` 记录的 2026-11-12 干净复建含 Swift 6 构建阶段、13 个 arm64 非系统 Mach-O 审计、20 项 IR、167 项非硬件回归和源码导出。该结果是同一台开发机上的隔离复现，仍不能替代第二台 Mac 验收。
 - 全新构建的实机 smoke 已单独验证；它不是不访问 USB 的复现阶段之一，见 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`。
