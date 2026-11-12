@@ -70,7 +70,7 @@ USB access can vary between a sandboxed process and a normal macOS terminal. Run
 
 The toolkit is for USB inspection, firmware and XLink experiments, deterministic synthetic inference, throughput/latency measurements, and model compatibility tests. It does not upload arbitrary firmware or reset the device implicitly from the descriptor probe.
 
-This is an experimental source preview, with no packaged release. The publication boundary and remaining checks are in docs/PUBLICATION_CHECKLIST.md. Same-machine fresh bootstrap and a 25-minute worker stability observation are verified; a second physical Mac, broad model support, and signed relocatable binary distribution still need validation. Licensing for this repository's own code has not yet been selected; public visibility does not grant an open-source license. Third-party licensing notes are in `THIRD_PARTY_NOTICES.md`, with the source-level inventory in `docs/THIRD_PARTY_REVIEW.md`.
+This is an experimental source release under the MIT License for this repository's original code; see `LICENSE`. There is no packaged release. Same-machine fresh bootstrap and a 25-minute worker stability observation are verified; a second physical Mac, broad model support, and signed relocatable binary distribution still need validation. The project license does not cover OpenVINO, libusb, Intel firmware, or copied runtime binaries. Third-party licensing notes are in `THIRD_PARTY_NOTICES.md`, with the source-level inventory in `docs/THIRD_PARTY_REVIEW.md`.
 
 
 ## Operator and lifecycle experiments
@@ -87,8 +87,8 @@ The persistent worker protocols are documented in docs/WORKER_API.md. Schema 1 s
     ./ncs2 source-export        # Allowlisted source candidate plus SHA-256 manifest
     ./ncs2 source-export --check path/to/candidate # Read-only integrity verification
 
-Local runtime bundles include firmware and dependencies; they are not cleared for redistribution. Only copied artifacts have their loader paths changed and receive ad-hoc signatures. Source exports exclude vendor/build/firmware/results/raw notebooks and reject known local home/project paths. Public source publication is separate from license selection and binary release approval.
+Local runtime bundles include firmware and dependencies; they are not cleared for redistribution. Only copied artifacts have their loader paths changed and receive ad-hoc signatures. Source exports exclude vendor/build/firmware/results/raw notebooks and reject known local home/project paths. The MIT source license does not approve third-party or binary redistribution.
 
-See CONTRIBUTING.md for offline and hardware checks, docs/WORKER_STABILITY.md for the bounded soak/restart experiment, docs/SOURCE_EXPORT.md for source inventory checks, docs/THIRD_PARTY_REVIEW.md for the provenance boundary, and docs/LICENSE_OPTIONS.md for the pending project-license decision. A second Mac, license selection and signed/notarized distribution remain separate release requirements.
+See CONTRIBUTING.md for offline and hardware checks, docs/WORKER_STABILITY.md for the bounded soak/restart experiment, docs/SOURCE_EXPORT.md for source inventory checks, docs/THIRD_PARTY_REVIEW.md for the provenance boundary, and docs/LICENSE_OPTIONS.md for the project-license decision. A second Mac and signed/notarized binary distribution remain separate release requirements.
 
 See [REPRODUCTION.md](docs/REPRODUCTION.md) for fresh local rebuilds, [SECOND_MAC_CHECKLIST.md](docs/SECOND_MAC_CHECKLIST.md) for the physical second-Mac handoff, and the optional manual workflow on a physical self-hosted Mac. An isolated fresh-source/dependency rebuild and a separate NCS2 smoke passed on the development Mac; a second Mac is still unverified. GitHub-hosted macOS virtual machines are not used.

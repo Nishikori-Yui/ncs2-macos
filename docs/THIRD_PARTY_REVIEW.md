@@ -1,8 +1,9 @@
 # Third-party review snapshot
 
 This document records a source-level provenance review for the macOS NCS2
-toolkit. It does not select a license for this repository, grant permission to
-redistribute Intel firmware, or clear a packaged runtime for distribution.
+toolkit. The repository's original source is licensed under MIT; this review
+does not grant permission to redistribute Intel firmware or clear a packaged
+runtime for distribution.
 
 The review is tied to `toolchain.lock.json` as observed on 2026-11-12:
 
@@ -44,9 +45,9 @@ public repository. The checksum proves which bytes were tested; it does not
 prove a right to redistribute those bytes. Firmware redistribution therefore
 remains unresolved and outside the source-preview publication.
 
-The project itself still has no selected `LICENSE` file. The public repository
-is a source preview with scripts and documentation; it does not claim to be a
-licensed open-source release until the owner selects and commits a license.
+The root `LICENSE` applies to the project's original source. It does not replace
+upstream notices or resolve redistribution terms for firmware and copied
+runtime binaries.
 
 Upstream references used for this snapshot:
 

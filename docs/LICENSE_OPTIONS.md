@@ -1,8 +1,9 @@
 # Project license decision note
 
-This note prepares the project-owner decision. It does not select or apply a
-license. Until a root `LICENSE` file is committed, the public repository
-remains a source preview and should not be described as an open-source release.
+The project owner selected the MIT License on 2026-11-12. The canonical text is
+in the root [`LICENSE`](../LICENSE) file and applies to this repository's
+original source. This note records the decision and its boundary; it does not
+change the licenses of third-party components.
 
 The two practical permissive candidates for this repository are:
 
@@ -16,19 +17,19 @@ change the licenses of OpenVINO, its submodules, libusb, or Intel firmware.
 Those components remain governed by their own notices and distribution terms.
 The third-party inventory is in `docs/THIRD_PARTY_REVIEW.md`.
 
-The repository's current engineering recommendation is **Apache-2.0 as the
-default candidate**, because this project contains native systems code and is
-intended to accept future tooling contributions. This is a recommendation for
-the owner to approve, not an automatic license selection. If the owner prefers
-the shortest possible permissive notice, MIT is the alternative.
+The selected project license is **MIT**. It was chosen for the short,
+permissive notice and low downstream friction. The MIT License does not provide
+an express patent grant, and it does not authorize redistribution of OpenVINO,
+libusb, Intel firmware, or any copied runtime. Those components remain subject
+to their own notices and terms.
 
-Before committing either option:
+The decision record confirms:
 
-1. Replace the copyright holder placeholder with the owner identity to use.
-2. Confirm that the owner controls or may license all original files in the
+1. The copyright holder in `LICENSE` is `Nishikori-Yui`.
+2. The owner controls or may license all original files in the
    public source candidate.
-3. Keep third-party source notices separate from the project license.
-4. Do not infer firmware or packaged-runtime redistribution permission from the
+3. Third-party source notices remain separate from the project license.
+4. Firmware and packaged-runtime redistribution permission is not inferred from
    project license.
 
 References:

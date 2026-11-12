@@ -1,6 +1,10 @@
 # Third-party provenance and publication boundary
 
-This toolkit has not yet selected a license for its own original source. The public source preview does not grant an open-source license; a license must be selected before an open-source release. No third-party binary or source tree is included in this repository.
+The original source in this repository is licensed under the MIT License; see
+the root [`LICENSE`](LICENSE) file. That grant covers this project's original
+source only. No third-party binary or source tree is included in this
+repository, and the project license does not grant permission to redistribute
+third-party components.
 
 - OpenVINO is fetched from `openvinotoolkit/openvino` at the exact commit in `toolchain.lock.json`. The checked-out root `LICENSE` identifies Apache-2.0; retain upstream notices and inspect component licenses before distributing derived binaries.
 - The checked-out submodule revisions are pinned in the lockfile. Their licenses remain with their upstream sources; this toolkit does not relabel them.

@@ -10,11 +10,11 @@
 | 数值实验 | 20 个 IR v11 fixture 全部往返；完整实机套件 19 项通过，standalone FakeQuantize 编译拒绝 | 继续扩大 shape、属性与组合图的边界，并记录任意用户模型的兼容限制 |
 | 离线音频 | 已完成 WAV 读回、声谱预处理和未训练小 CNN 的数值验证；它没有分类语义 | 测试更多合法/非法 WAV 输入；训练分类器属于另一个数据和许可项目 |
 | 时间序列 | 已完成固定合成序列的异常分数和已知 spike 核对 | 扰动窗口、阈值和事件位置，检查误报/漏报边界 |
-| 现代 macOS API | schema 1/2 都有 Python/Swift 客户端；schema 2 三种端口图在 Swift 中复测 93 次、744 元素通过 | 第二台 Mac 复现、许可证选择和更广模型兼容性 |
+| 现代 macOS API | schema 1/2 都有 Python/Swift 客户端；schema 2 三种端口图在 Swift 中复测 93 次、744 元素通过 | 第二台 Mac 复现和更广模型兼容性 |
 
 性能报告应同时保留模型、shape、数据类型、USB 连接速率、预热次数、样本量和误差，不把 1x4 ReLU 的毫秒数外推为通用推理速度。功耗或能效需要额外测量，不能从延迟推算。
 
-当前优先顺序：第二台实体 arm64 Mac 复现 → 许可证选择 → 二进制/固件再分发审查 → 签名/公证路径 → 更广模型兼容性 → 受控 USB 2/3 和功耗实验。来源盘点已记录在 `docs/THIRD_PARTY_REVIEW.md`；自定义 Myriad 内核编译器和现代大模型不在已验证能力内。
+当前优先顺序：第二台实体 arm64 Mac 复现 → 更广模型兼容性 → USB 2/3 与独立仪器功耗实验；若计划发二进制，再先完成固件/runtime 再分发审查及签名/公证路径。原创源码采用 MIT；来源盘点已记录在 `docs/THIRD_PARTY_REVIEW.md`。自定义 Myriad 内核编译器和现代大模型不在已验证能力内。
 
 ## 2026 年适合继续折腾的用途
 
@@ -25,4 +25,4 @@
 5. **macOS 原生推理服务**：让 Swift、Python 或其他客户端只接触版本化 JSON-lines worker；schema 1 覆盖单输入/输出，schema 2 的 Python 和 Swift 实现覆盖静态 f32 多输入/输出。NCS2 上已分别验证两个输入一个输出、一个输入两个输出，以及输入 shape 不同的 concat。旧 runtime 固定在 arm64 进程中，现代应用不链接旧 OpenVINO ABI，也不需要 x86_64 或 Rosetta。
 6. **离线信号实验**：用 WAV、合成时序、传感器日志、音频特征或小型控制信号测试张量布局、数值误差和恢复机制；不需要摄像头，也不把 fixture 冒充成训练好的分类器。
 
-最值得开源的是这层工具链和证据格式：`ncs2 usb`、离线 descriptor parser、`check --json`、worker schema、IR fixture catalog、性能报告和复现脚本。固件、runtime 二进制、第三方来源和许可证仍应单独审查后再决定是否发布。
+最值得开源的是这层工具链和证据格式：`ncs2 usb`、离线 descriptor parser、`check --json`、worker schema、IR fixture catalog、性能报告和复现脚本。项目原创源码已采用 MIT；固件、runtime 二进制及各自的第三方来源和条款仍需单独审查后才能打包发布。

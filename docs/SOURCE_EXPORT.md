@@ -40,7 +40,7 @@ Hashes detect differences against the supplied manifest. They do not authenticat
 
 `published` and `release_ready` are always false, including when a root `LICENSE` exists. Without that file, `own_license_selected` is false; when present, that field reports file presence only, not legal validity or permission. This exporter never creates or selects a license.
 
-The byte/signature and known-path checks are bounded safeguards, not a complete secret scanner or proof that all text is original source. Review the exact candidate, credentials and private data, third-party provenance, license choice, and fresh-machine reproduction before a separate publication decision.
+The byte/signature and known-path checks are bounded safeguards, not a complete secret scanner or proof that all text is original source. Review the exact candidate, credentials and private data, third-party provenance, license scope, and second-machine reproduction before a separate publication decision.
 
 ## Isolated regression tests
 

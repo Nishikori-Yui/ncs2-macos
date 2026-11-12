@@ -1,6 +1,6 @@
 # 实施计划与验收证据
 
-截至 2026-11-12，本机原型六阶段均已有代码和验证产物。公开仓库为 [ncs2-macos](https://github.com/Nishikori-Yui/ncs2-macos)，内容为实验源码预览；原创许可证仍待选择，没有二进制/固件发行。没有使用 Linux、虚拟机、Rosetta、x86_64 runtime 或摄像头。
+截至 2026-11-12，本机原型六阶段均已有代码和验证产物。公开仓库为 [ncs2-macos](https://github.com/Nishikori-Yui/ncs2-macos)，原创源码采用 MIT；没有二进制/固件发行。没有使用 Linux、虚拟机、Rosetta、x86_64 runtime 或摄像头。
 
 | 阶段 | 实现 | 证据与边界 |
 | --- | --- | --- |
@@ -9,7 +9,7 @@
 | 3 性能/协议 | USB 生命周期、XLink runtime 事件、3 种卷积、并发和预处理对照 | 小卷积 3 轮，大卷积 1 轮；逐元素校验；XLink 日志不是 USB 包抓取 |
 | 4 现代 API | schema 1/2 均有 Python/Swift 客户端和 native worker | 静态 f32 IR；最多 32 个端口、每方向总计 16,384 元素；两种语言实测 2→2、异形 2→1、1→2 |
 | 5 无摄像头样例 | WAV 读回→声谱→未训练小 CNN；合成时序异常分数 | 各 3 次实机核对；异常恰为样本 42/43；音频不是分类器 |
-| 6 repo 准备 | 可搬移本地 runtime、来源/许可记录、允许清单源码导出 | 新路径实机与 IR 加载通过；第三方来源盘点、许可选项和第二台 Mac 操作清单已发布；原创许可决定、跨机复现和发行签名仍待确认或验证 |
+| 6 repo 准备 | 可搬移本地 runtime、来源/许可记录、允许清单源码导出 | 新路径实机与 IR 加载通过；第三方来源盘点、MIT 决定和第二台 Mac 操作清单已发布；跨机复现和发行签名仍待验证 |
 
 ## 本轮证据
 
@@ -37,14 +37,14 @@
 - 独立硬件 smoke：从最终全新构建单独运行 `MYRIAD` ReLU，输出 `[0, 0.5, 0, 3]`，最大绝对误差 0。记录在 `results/reproduce-physical-verified-20261111/separate-hardware-smoke.json`；它与不访问 USB 的复现报告分开统计。受限执行上下文曾报告 `device_count=0`；正常 macOS USB 执行发现设备并通过。
 - 手动 macOS arm64 workflow 已静态解析并限制为自托管物理机标签；GitHub Actions API 当前没有该仓库的 workflow runs，也没有第二台 Mac 验收证据。
 - 第二台实体 Mac 验收步骤现有公开清单 `docs/SECOND_MAC_CHECKLIST.md`，包括全新来源复现、报告验收字段、可选硬件 smoke/soak 和只回传脱敏摘要的边界。GitHub Actions API 当前返回该仓库 `workflow_runs.total_count=0`；没有第二台机器的执行证据。
-- 项目许可证选择材料见 `docs/LICENSE_OPTIONS.md`：Apache-2.0 是工程建议、MIT 是备选；没有替所有者选定或创建根 `LICENSE`。
+- 项目原创代码采用 MIT，见根目录 `LICENSE` 和 `docs/LICENSE_OPTIONS.md`；该许可证不改变 OpenVINO、libusb、固件或本地 runtime 的第三方条款。
 - 完整命令/失败/修复写入 ncs2_read_attempts.md；公开文档保留摘要，results/dist/build/vendor 不进源码候选。
 
 ## 发行和扩展边界
 
-原创代码许可证未选择；公开 repo 已获用户授权，正式开源发行尚未完成。固件/本地包再分发未确认，包仅本地用。来源级第三方盘点已完成，但二进制/固件再分发审查仍未放行。同机隔离复现、从全新构建执行的独立 smoke 和 25 分钟稳定性观察已通过；第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
+原创代码许可证已选 MIT；公开 repo 的源码可以按该许可证使用。固件/本地包再分发未确认，包仅本地用。来源级第三方盘点已完成，但二进制/固件再分发审查仍未放行。同机隔离复现、从全新构建执行的独立 smoke 和 25 分钟稳定性观察已通过；第二台 Mac 从零复现、Developer ID 签名/公证、小时或天级稳定性、物理断连恢复、功耗仍未验证。没有实现 ONNX 转换器、自定义 Myriad 内核编译器或现代大模型支持。现代上层接口不等于把 MYRIAD 插件移植进 2026 年 OpenVINO。
 
-本地实现阶段已有验收证据，完整长期目标保留 active。后续优先完成第二台实体 Mac 复现、原创许可证选择和二进制/固件再分发审查；模型兼容性扩展保留为后续实验。
+本地实现阶段已有验收证据，完整长期目标保留 active。后续优先完成第二台实体 Mac 复现和更广模型兼容性验证；只有计划发布二进制时才推进固件/runtime 再分发审查。
 
 ### schema 2 非对称端口补充
 
@@ -72,7 +72,7 @@
 当前 Swift 批次已通过整合回归和实机验证；后续按以下项收尾：
 
 1. 在第二台实体 arm64 Mac 上按 `docs/SECOND_MAC_CHECKLIST.md` 复现锁定工具链；当前机器上的最新源码干净复建已经完成。
-2. 从 `docs/LICENSE_OPTIONS.md` 的选项中确认并提交项目原创代码许可证；来源盘点已完成，但二进制/固件再分发仍需单独审查。
-3. 如果决定发布编译产物，再做 Developer ID 签名、公证和搬移 runtime 的发行审查。
+2. 如计划发布编译产物，先完成固件/runtime 再分发审查；源码 MIT 许可不覆盖这些第三方材料。
+3. 只有决定发布编译产物时，才做 Developer ID 签名、公证和搬移 runtime 的发行审查。
 
 本机可执行的收尾预计分 2–3 批推进。跨设备和发布决策依赖额外条件，不估算总工时；不把新增任意模型或算子作为无限延长首版收尾的前提。
