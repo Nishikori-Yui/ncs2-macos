@@ -55,6 +55,6 @@ Upstream references used for this snapshot:
 - OpenVINO runtime license metadata: <https://github.com/openvinotoolkit/openvino/tree/master/licensing>
 - Xbyak repository and license metadata: <https://github.com/herumi/xbyak>
 
-The exact pinned files and hashes remain in the local checkout and are
-revalidated by the reproduction and source-export workflows. This review is a
-provenance record, not legal advice.
+The exact pinned files and hashes remain in the local checkout and are checked
+by the dependency bootstrap. This review is a provenance record, not legal
+advice.

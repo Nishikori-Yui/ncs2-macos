@@ -29,47 +29,11 @@ file "$OUTPUT"
 clang++ -arch arm64 -std=c++17 -O2 \
   -I "$SOURCE_DIR/src/inference/include" \
   -I "$SOURCE_DIR/src/core/include" \
-  "$ROOT_DIR/ncs2_lab.cpp" \
-  -L "$SOURCE_DIR/bin/arm64/Release" -lopenvino \
-  -Wl,-rpath,"$SOURCE_DIR/bin/arm64/Release" \
-  -o "$BUILD_DIR/ncs2_lab"
-file "$BUILD_DIR/ncs2_lab"
-
-clang++ -arch arm64 -std=c++17 -O2 \
-  -I "$SOURCE_DIR/src/inference/include" \
-  -I "$SOURCE_DIR/src/core/include" \
-  "$ROOT_DIR/ncs2_perf.cpp" \
-  -L "$SOURCE_DIR/bin/arm64/Release" -lopenvino \
-  -Wl,-rpath,"$SOURCE_DIR/bin/arm64/Release" \
-  -o "$BUILD_DIR/ncs2_perf"
-file "$BUILD_DIR/ncs2_perf"
-
-clang++ -arch arm64 -std=c++17 -O2 \
-  -I "$SOURCE_DIR/src/inference/include" \
-  -I "$SOURCE_DIR/src/core/include" \
   "$ROOT_DIR/ncs2_worker.cpp" \
   -L "$SOURCE_DIR/bin/arm64/Release" -lopenvino \
   -Wl,-rpath,"$SOURCE_DIR/bin/arm64/Release" \
   -o "$BUILD_DIR/ncs2_worker"
 file "$BUILD_DIR/ncs2_worker"
-
-clang++ -arch arm64 -std=c++17 -O2 \
-  -I "$SOURCE_DIR/src/inference/include" \
-  -I "$SOURCE_DIR/src/core/include" \
-  "$ROOT_DIR/ncs2_apps.cpp" \
-  -L "$SOURCE_DIR/bin/arm64/Release" -lopenvino \
-  -Wl,-rpath,"$SOURCE_DIR/bin/arm64/Release" \
-  -o "$BUILD_DIR/ncs2_apps"
-file "$BUILD_DIR/ncs2_apps"
-
-clang++ -arch arm64 -std=c++17 -O2 \
-  -I "$SOURCE_DIR/src/inference/include" \
-  -I "$SOURCE_DIR/src/core/include" \
-  "$ROOT_DIR/ncs2_multi_io.cpp" \
-  -L "$SOURCE_DIR/bin/arm64/Release" -lopenvino \
-  -Wl,-rpath,"$SOURCE_DIR/bin/arm64/Release" \
-  -o "$BUILD_DIR/ncs2_multi_io"
-file "$BUILD_DIR/ncs2_multi_io"
 
 clang++ -arch arm64 -std=c++17 -O2 \
   -I "$SOURCE_DIR/src/inference/include" \

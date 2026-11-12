@@ -23,7 +23,7 @@ class ArchitectureAuditTests(unittest.TestCase):
         self.probe.parent.mkdir(parents=True)
         self.runtime.mkdir(parents=True)
         for path in (self.probe, *(self.probe.parent / name for name in
-                                    ('ncs2_lab', 'ncs2_perf', 'ncs2_worker', 'ncs2_apps', 'ncs2_multi_io', 'ncs2_multi_worker'))):
+                                    ('ncs2_worker', 'ncs2_multi_worker'))):
             path.write_bytes(path.name.encode())
         self.library = self.runtime / 'libopenvino.dylib'
         self.library.write_bytes(b'openvino')
@@ -58,7 +58,7 @@ class ArchitectureAuditTests(unittest.TestCase):
         command.side_effect = self.mock_command
         report = check_arm64.audit()
         self.assertEqual(report['status'], 'passed')
-        self.assertEqual(report['non_system_macho_count'], 11)
+        self.assertEqual(report['non_system_macho_count'], 7)
         probe = next(item for item in report['artifacts'] if item['path'].endswith('ncs2_openvino_probe'))
         self.assertEqual(probe['architectures'], ['arm64'])
         self.assertEqual(probe['sha256'], hashlib.sha256(self.probe.read_bytes()).hexdigest())
@@ -80,7 +80,7 @@ class ArchitectureAuditTests(unittest.TestCase):
         for name in ('NCS2WorkerClient', 'NCS2MultiWorkerClient'):
             (self.probe.parent / name).write_bytes(name.encode())
         report = check_arm64.audit()
-        self.assertEqual(report['non_system_macho_count'], 13)
+        self.assertEqual(report['non_system_macho_count'], 9)
         self.assertTrue({'build-arm64/NCS2WorkerClient', 'build-arm64/NCS2MultiWorkerClient'}
                         <= {item['path'] for item in report['artifacts']})
 
@@ -108,7 +108,7 @@ class ArchitectureLauncherTests(unittest.TestCase):
             self.assertEqual(report['schema_version'], 1)
             self.assertEqual(report['status'], 'passed')
             self.assertEqual(report['non_system_macho_count'], len(report['artifacts']))
-            self.assertGreaterEqual(report['non_system_macho_count'], 8)
+            self.assertGreaterEqual(report['non_system_macho_count'], 7)
             self.assertTrue(all(item['architectures'] == ['arm64'] for item in report['artifacts']))
             self.assertIn('[recorded] exit=0', result.stderr)
             self.assertIn('"status":"passed"', notebook.read_text())

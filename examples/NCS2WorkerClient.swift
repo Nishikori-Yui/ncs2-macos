@@ -5,11 +5,8 @@ import Darwin
 #error("This example requires native macOS arm64; Linux, x86, and Rosetta are unsupported.")
 #endif
 
-// Build: xcrun swiftc -target arm64-apple-macosx13.0 -Xlinker -arch -Xlinker arm64 \
-//   -swift-version 6 -parse-as-library -O \
-//   examples/NCS2WorkerClient.swift -o /tmp/NCS2WorkerClient
-// Run from the repository root: /tmp/NCS2WorkerClient
-// Running the demo uses a real MYRIAD device. --help never launches a worker.
+// Build with ./ncs2 build-swift. The demo requires a model XML and a real
+// MYRIAD device; --help never launches a worker.
 // Define NCS2_CLIENT_LIBRARY to reuse the synchronous client without the demo.
 // Confine each client to one calling thread; no callbacks, tasks, or actors are used.
 
@@ -231,6 +228,20 @@ public struct NCS2TensorDescriptor: Codable, Equatable, Sendable {
         self.dtype = dtype
         self.shape = shape
     }
+
+    public func elementCount() throws -> Int {
+        guard dtype == "f32", !shape.isEmpty, shape.count <= 8 else {
+            throw NCS2ClientError("Invalid tensor dtype or rank")
+        }
+        var count = 1
+        for dimension in shape {
+            guard dimension > 0, count <= 16_384 / dimension else {
+                throw NCS2ClientError("Tensor shape exceeds 16384 elements or has a nonpositive dimension")
+            }
+            count *= dimension
+        }
+        return count
+    }
 }
 
 public struct NCS2Ready: Decodable, Sendable {
@@ -264,23 +275,20 @@ public struct NCS2Inference: Sendable {
     public let milliseconds: Double
 }
 
-/// Synchronous schema-1 client for the fixed convolution worker fixture.
+/// Synchronous schema-1 client for static single-input/single-output f32 IR.
 /// Confine each instance to one calling thread; it owns one worker process.
 public final class NCS2WorkerClient {
-    public static let caseID = "conv_1x3x16x16"
-    public static let inputDescriptor = NCS2TensorDescriptor(dtype: "f32", shape: [1, 3, 16, 16])
-    public static let outputDescriptor = NCS2TensorDescriptor(dtype: "f32", shape: [1, 4, 14, 14])
-
     private let process = Process()
     private var pipe: JSONLinePipe?
     private var launched = false
     private var sequence = 0
     private var completed = 0
+    private let caseID: String
     private let timeout: TimeInterval
     private let exitTimeout: TimeInterval
     public private(set) var ready: NCS2Ready?
 
-    public init(worker: URL, plugins: URL, timeout: TimeInterval = 15,
+    public init(worker: URL, plugins: URL, model: URL, timeout: TimeInterval = 15,
                 startupTimeout: TimeInterval = 30, exitTimeout: TimeInterval = 3) throws {
         // Validate every duration before spawning anything.
         _ = try PipeDeadline(seconds: timeout)
@@ -288,12 +296,13 @@ public final class NCS2WorkerClient {
         _ = try PipeDeadline(seconds: exitTimeout)
         self.timeout = timeout
         self.exitTimeout = exitTimeout
+        caseID = model.deletingPathExtension().lastPathComponent
         let input = Pipe()
         let output = Pipe()
         do {
             pipe = try JSONLinePipe(reader: output.fileHandleForReading, writer: input.fileHandleForWriting)
             process.executableURL = worker
-            process.arguments = [plugins.path, "--case", Self.caseID]
+            process.arguments = [plugins.path, "--model", model.path]
             process.standardInput = input
             process.standardOutput = output
             // Inherit stderr: an undrained stderr pipe could deadlock the worker.
@@ -305,9 +314,9 @@ public final class NCS2WorkerClient {
             try output.fileHandleForWriting.close()
             let deadline = try PipeDeadline(seconds: startupTimeout)
             let value = try decodeFrame(NCS2Ready.self, from: pipe!.readFrame(until: deadline))
-            guard value.schema_version == 1, value.type == "ready", value.case == Self.caseID,
+            guard value.schema_version == 1, value.type == "ready", value.case == caseID,
                   value.device == "MYRIAD", !value.validation_only,
-                  value.input == Self.inputDescriptor, value.output == Self.outputDescriptor else {
+                  try validDescriptor(value.input), try validDescriptor(value.output) else {
                 throw NCS2ClientError("Worker readiness identity or tensor descriptor mismatch")
             }
             try deadline.check("Startup")
@@ -319,6 +328,18 @@ public final class NCS2WorkerClient {
             try? output.fileHandleForWriting.close()
             throw cleaningUp(error)
         }
+    }
+
+    private func validDescriptor(_ descriptor: NCS2TensorDescriptor) throws -> Bool {
+        guard descriptor.dtype == "f32", !descriptor.shape.isEmpty, descriptor.shape.count <= 8 else {
+            return false
+        }
+        var count = 1
+        for dimension in descriptor.shape {
+            guard dimension > 0, count <= 16_384 / dimension else { return false }
+            count *= dimension
+        }
+        return true
     }
 
     deinit { try? close() }
@@ -360,7 +381,7 @@ public final class NCS2WorkerClient {
 
     private struct Input: Encodable {
         let dtype = "f32"
-        let shape = NCS2WorkerClient.inputDescriptor.shape
+        let shape: [Int]
         let data: [Float]
     }
 
@@ -378,7 +399,9 @@ public final class NCS2WorkerClient {
             }
             sequence += 1
             let id = "swift-\(sequence)"
-            let request = Request(request_id: id, operation: operation, input: values.map { Input(data: $0) })
+            guard let ready else { throw NCS2ClientError("Worker has no ready descriptor") }
+            let request = Request(request_id: id, operation: operation,
+                                  input: values.map { Input(shape: ready.input.shape, data: $0) })
             let data = try JSONEncoder().encode(request)
             // One deadline covers both partial writes and the entire response, not each chunk.
             let deadline = try PipeDeadline(seconds: timeout)
@@ -395,7 +418,7 @@ public final class NCS2WorkerClient {
                 if !fatal { throw NCS2RemoteError(description: message) }
                 throw NCS2ClientError("Fatal worker error: \(message)")
             }
-            guard response.status == "ok", response.case == Self.caseID else {
+            guard response.status == "ok", response.case == caseID else {
                 throw NCS2ClientError("Worker response status or case mismatch")
             }
             return response
@@ -416,12 +439,15 @@ public final class NCS2WorkerClient {
     }
 
     public func infer(_ values: [Float]) throws -> NCS2Inference {
-        guard values.count == 768, values.allSatisfy(\.isFinite) else {
-            throw NCS2ClientError("Input must contain exactly 768 finite f32 values")
+        guard let ready else { throw NCS2ClientError("Worker has no ready descriptor") }
+        let inputCount = try ready.input.elementCount()
+        guard values.count == inputCount, values.allSatisfy(\.isFinite) else {
+            throw NCS2ClientError("Input must contain exactly \(inputCount) finite f32 values")
         }
         let response = try request("infer", values: values)
-        guard response.shape == Self.outputDescriptor.shape, response.dtype == "f32",
-              response.hardware_executed == true, let output = response.output, output.count == 784,
+        let outputCount = try ready.output.elementCount()
+        guard response.shape == ready.output.shape, response.dtype == "f32",
+              response.hardware_executed == true, let output = response.output, output.count == outputCount,
               output.allSatisfy({ $0.isFinite && abs($0) <= Double(Float.greatestFiniteMagnitude) }),
               let milliseconds = response.infer_ms, milliseconds.isFinite, milliseconds >= 0 else {
             throw cleaningUp(NCS2ClientError("Invalid inference output tensor, timing, or hardware_executed flag"))
@@ -452,35 +478,6 @@ public final class NCS2WorkerClient {
     }
 }
 
-// Independent scalar NCHW convolution: 4 output channels, 3 input channels,
-// 3x3 kernels, stride 1, no padding or bias. No OpenVINO/Accelerate CPU fallback.
-func scalarConvolution(_ input: [Float]) throws -> [Double] {
-    guard input.count == 768, input.allSatisfy(\.isFinite) else {
-        throw NCS2ClientError("Scalar reference requires 768 finite f32 values")
-    }
-    var output = [Double]()
-    output.reserveCapacity(784)
-    for channel in 0..<4 {
-        for row in 0..<14 {
-            for column in 0..<14 {
-                var sum = 0.0
-                for inputChannel in 0..<3 {
-                    for dy in 0..<3 {
-                        for dx in 0..<3 {
-                            let weightIndex = ((channel * 3 + inputChannel) * 3 + dy) * 3 + dx
-                            let weight = Double((weightIndex * 7) % 9 - 4) / 32
-                            let index = (inputChannel * 16 + row + dy) * 16 + column + dx
-                            sum += Double(input[index]) * weight
-                        }
-                    }
-                }
-                output.append(sum)
-            }
-        }
-    }
-    return output
-}
-
 #if !NCS2_CLIENT_LIBRARY
 @main
 enum NCS2WorkerDemo {
@@ -496,21 +493,26 @@ enum NCS2WorkerDemo {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         var worker = root.appendingPathComponent("build-arm64/ncs2_worker")
         var plugins = root.appendingPathComponent("vendor/openvino-2022.3/bin/arm64/Release/plugins.xml")
+        var model: URL?
         var timeout = 15.0, startupTimeout = 30.0, exitTimeout = 3.0
         let arguments = Array(CommandLine.arguments.dropFirst())
         if arguments == ["--help"] {
-            print("Usage: NCS2WorkerClient [--worker PATH] [--plugins PATH] [--timeout SECONDS] [--startup-timeout SECONDS] [--exit-timeout SECONDS]")
-            print("Native macOS arm64 only. Runs one real MYRIAD inference and checks 784 outputs against a scalar reference; no CPU fallback.")
+            print("Usage: NCS2WorkerClient --model XML [--worker PATH] [--plugins PATH] [--timeout SECONDS] [--startup-timeout SECONDS] [--exit-timeout SECONDS]")
+            print("Native macOS arm64 only. Runs one MYRIAD inference on a static single-input/single-output f32 model; no CPU fallback.")
             return
         }
         var index = 0
+        var seen = Set<String>()
         while index < arguments.count {
             let option = arguments[index]
-            guard index + 1 < arguments.count else { throw NCS2ClientError("Missing value for \(option)") }
+            guard index + 1 < arguments.count, seen.insert(option).inserted else {
+                throw NCS2ClientError("Missing value or duplicate option: \(option)")
+            }
             let value = arguments[index + 1]
             switch option {
             case "--worker": worker = URL(fileURLWithPath: value)
             case "--plugins": plugins = URL(fileURLWithPath: value)
+            case "--model": model = URL(fileURLWithPath: value)
             case "--timeout", "--startup-timeout", "--exit-timeout":
                 guard let seconds = Double(value) else { throw NCS2ClientError("Invalid timeout: \(value)") }
                 _ = try PipeDeadline(seconds: seconds)
@@ -521,23 +523,16 @@ enum NCS2WorkerDemo {
             }
             index += 2
         }
-        let client = try NCS2WorkerClient(worker: worker, plugins: plugins, timeout: timeout,
+        guard let model else { throw NCS2ClientError("--model is required") }
+        let client = try NCS2WorkerClient(worker: worker, plugins: plugins, model: model, timeout: timeout,
                                           startupTimeout: startupTimeout, exitTimeout: exitTimeout)
         do {
-            print("ready: schema_version=1 case=\(NCS2WorkerClient.caseID) device=MYRIAD input=f32[1,3,16,16] output=f32[1,4,14,14]")
+            guard let ready = client.ready else { throw NCS2ClientError("Worker has no ready descriptor") }
+            print("ready: schema_version=1 case=\(ready.case) device=MYRIAD input=f32\(ready.input.shape) output=f32\(ready.output.shape)")
             print("health: ok completed=\(try client.health())")
-            let input = (0..<768).map { Float(($0 * 37) % 65 - 32) / 16 }
-            let expected = try scalarConvolution(input)
+            let input = (0..<(try ready.input.elementCount())).map { Float(($0 * 37) % 65 - 32) / 16 }
             let result = try client.infer(input)
-            var maxError = 0.0
-            for (index, pair) in zip(result.output, expected).enumerated() {
-                let error = abs(pair.0 - pair.1)
-                guard error <= 0.01 + 0.01 * abs(pair.1) else {
-                    throw NCS2ClientError("Independent scalar convolution mismatch at \(index): got \(pair.0), expected \(pair.1)")
-                }
-                maxError = max(maxError, error)
-            }
-            print("infer: hardware_executed=true checked_elements=784 max_abs_error=\(maxError) atol=0.01 rtol=0.01 infer_ms=\(result.milliseconds)")
+            print("infer: hardware_executed=true outputs=\(result.output.count) infer_ms=\(result.milliseconds)")
             let status = try client.shutdown()
             print("shutdown: ok worker_exit_code=\(status)")
             print("SWIFT_WORKER_RESULT=PASS")

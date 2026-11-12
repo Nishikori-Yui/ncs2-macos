@@ -1,34 +1,45 @@
 # Contributing
 
-The supported development path is native arm64 macOS. Keep camera integrations outside this repository's scope.
+Development targets native arm64 macOS. Keep Linux, virtual machines, containers, Rosetta, x86_64 runtimes, and camera integrations outside this repository.
 
 ## Local checks
 
-For an isolated online rebuild without reusing existing source/dependency/build caches:
+Run from a checkout whose path may contain spaces:
 
-    ./ncs2 reproduce --timeout 3600
+```sh
+./ncs2 fetch --offline
+./ncs2 build-probe
+./ncs2 build-swift
+./ncs2 check --json
+./ncs2_log_run.sh 'Unit tests' python3 -B -m unittest discover -s tests -v
+```
 
-This requests no USB operations. See docs/REPRODUCTION.md for its scope and the optional manual workflow for a physical self-hosted Mac. Existing local trees can use the shorter sequence below. Run from a checkout whose path may contain spaces:
-
-    ./ncs2 fetch --offline
-    ./ncs2 build-probe
-    ./ncs2 check
-    ./ncs2_log_run.sh 'Unit tests' python3 -m unittest discover -s tests -v
-    ./ncs2 suite --export-only
-
-Tests use the native compiled lab/worker/apps tools for offline IR, parser, process-lifecycle and numerical-reference checks. They do not access USB unless explicitly documented as hardware tests. Do not replace the MYRIAD backend with a CPU fallback to make a test pass.
+The unit tests use synthetic workers and saved USB descriptors. They do not access the device. Do not add a CPU fallback to make a MYRIAD test pass.
 
 ## Hardware checks
 
-Use one NCS2 process at a time. The default operator suite intentionally fails on unsupported standalone FakeQuantize. Preserve that failure. The worker's validation-only mode never claims device execution.
+Use one NCS2 process at a time.
 
-    ./ncs2 smoke
-    ./ncs2 perf --iterations 40 --warmup 5 --repeat 3
-    ./ncs2_log_run.sh 'Worker hardware validation' python3 scripts/worker_demo.py
-    ./ncs2 apps --hardware
+```sh
+./ncs2 usb
+./ncs2 list
+./ncs2 smoke
+./ncs2 bench 100 10
+```
 
-CLI commands already append the local notebook; do not wrap them in another logger. Use the logger only for commands that do not already log. Run notebook writers sequentially. Performance reports must state timing boundaries, sample counts, reference/tolerance checks and source/model/binary hashes.
+CLI commands already append to the local operation notebook; do not wrap them in another logger. Run notebook writers sequentially.
 
-## Review before publishing
+## Source export
 
-Keep raw notebooks, USB identifiers, local paths, firmware, build trees and results private. Use the allowlisted source export as a review candidate, not a publication action. Local runtime bundles are not cleared for redistribution. Choose the project's own license before an open-source release; retain upstream notices.
+`./ncs2 source-export` produces a reviewed source candidate with an integrity manifest. It excludes local firmware, runtime binaries, vendor source, build outputs, results, and notebooks. Check the exported tree before publishing:
+
+```sh
+./ncs2 source-export --output dist/candidate
+python3 -B scripts/export_source.py --check dist/candidate
+```
+
+The exporter rejects known local absolute paths, symlinks, binary content, and unexpected files. It is a bounded safeguard, not a substitute for reviewing credentials, third-party provenance, and license scope.
+
+## Third-party boundary
+
+Keep upstream source, firmware archives, and copied runtime binaries out of public commits unless redistribution terms have been reviewed. The project's MIT license does not cover OpenVINO, libusb, or Intel firmware.

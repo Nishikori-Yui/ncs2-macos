@@ -50,18 +50,17 @@ class NCS2Worker:
     protocol_version = 1
     frame_limit = 1024 * 1024
 
-    def __init__(self, worker: Path, plugins: Path, case="conv_1x3x16x16", *, model=None, timeout=15.0, startup_timeout=30.0, start_new_session=True, stderr=None):
+    def __init__(self, worker: Path, plugins: Path, model: Path, *, timeout=15.0, startup_timeout=30.0, start_new_session=True, stderr=None):
         if not 0 < timeout <= 300 or not 0 < startup_timeout <= 300:
             raise ValueError("Timeouts must be finite and in (0,300].")
         self.start_new_session = start_new_session
         self._closed = False
         self.timeout = timeout
-        self.case = Path(model).stem if model is not None else case
-        case = self.case
+        self.case = Path(model).stem
         self._buffer = bytearray()
         self._lock = threading.Lock()
         self.process = subprocess.Popen(
-            [str(worker), str(plugins), "--model" if model is not None else "--case", str(model) if model is not None else case],
+            [str(worker), str(plugins), "--model", str(model)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0, start_new_session=start_new_session, stderr=stderr,
         )
         try:
@@ -69,7 +68,7 @@ class NCS2Worker:
             os.set_blocking(self.process.stdin.fileno(), False)
             ready = self._read(time.monotonic() + startup_timeout)
             if (ready.get("type") != "ready" or type(ready.get("schema_version")) is not int or ready.get("schema_version") != 1
-                    or ready.get("case") != case or ready.get("device") != "MYRIAD"
+                    or ready.get("case") != self.case or ready.get("device") != "MYRIAD"
                     or ready.get("validation_only") is not False):
                 raise NCS2WorkerError("Worker readiness identity mismatch")
             for key in ("input", "output"):

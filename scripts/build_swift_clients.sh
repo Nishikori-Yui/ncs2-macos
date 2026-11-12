@@ -6,6 +6,7 @@ ROOT_DIR="${0:A:h:h}"
 }
 BUILD_DIR="$ROOT_DIR/build-arm64"
 mkdir -p "$BUILD_DIR/swift-module-cache"
+mkdir -p "$BUILD_DIR/clang-module-cache" "$BUILD_DIR/swiftpm-cache"
 flags=(-target arm64-apple-macosx13.0 -Xlinker -arch -Xlinker arm64
        -swift-version 6 -parse-as-library -O -warnings-as-errors
        -module-cache-path "$BUILD_DIR/swift-module-cache")
@@ -17,7 +18,8 @@ for binary in "$BUILD_DIR/NCS2WorkerClient" "$BUILD_DIR/NCS2MultiWorkerClient"; 
   file "$binary"
 done
 package_args=(--package-path "$ROOT_DIR" --scratch-path "$BUILD_DIR/swift-package"
-              --triple arm64-apple-macosx13.0)
+              --cache-path "$BUILD_DIR/swiftpm-cache" --triple arm64-apple-macosx13.0)
+export CLANG_MODULE_CACHE_PATH="$BUILD_DIR/clang-module-cache"
 xcrun swift build "${package_args[@]}" --configuration release --product NCS2Kit
 release_bin="$(xcrun swift build "${package_args[@]}" --configuration release --show-bin-path)"
 library="$release_bin/libNCS2Kit.a"

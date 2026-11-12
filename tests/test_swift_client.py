@@ -121,12 +121,16 @@ enum Harness {
         }
         let url = URL(fileURLWithPath: CommandLine.arguments[2])
         if mode == "deinit" {
-            var client: NCS2WorkerClient? = try NCS2WorkerClient(worker: url, plugins: URL(fileURLWithPath: "/unused"), timeout: 0.5)
+            var client: NCS2WorkerClient? = try NCS2WorkerClient(
+                worker: url, plugins: URL(fileURLWithPath: "/unused"),
+                model: URL(fileURLWithPath: "/unused/conv_1x3x16x16.xml"), timeout: 0.5)
             try client!.health()
             client = nil
             return
         }
-        let client = try NCS2WorkerClient(worker: url, plugins: URL(fileURLWithPath: "/unused"), timeout: 0.5)
+        let client = try NCS2WorkerClient(
+            worker: url, plugins: URL(fileURLWithPath: "/unused"),
+            model: URL(fileURLWithPath: "/unused/conv_1x3x16x16.xml"), timeout: 0.5)
         defer { try? client.close() }
         if mode == "explicit-close" {
             try client.close()
@@ -232,6 +236,8 @@ class SwiftClientTests(unittest.TestCase):
         cls.directory = Path(cls.temporary.name)
         cls.binary = cls.directory / "NCS2WorkerClient"
         cls.harness = cls.directory / "harness"
+        cls.model = cls.directory / "conv_1x3x16x16.xml"
+        cls.model.write_text("")
         harness_source = cls.directory / "Harness.swift"
         harness_source.write_text(HARNESS)
         flags = ["xcrun", "swiftc", "-target", "arm64-apple-macosx13.0", "-Xlinker", "-arch", "-Xlinker", "arm64",
@@ -257,8 +263,9 @@ class SwiftClientTests(unittest.TestCase):
         if mode:
             args = [self.harness, mode, *([fake] if fake else [])]
         else:
-            args = [self.binary, "--worker", fake, "--plugins", "/unused",
-                    "--timeout", "0.5", "--startup-timeout", "0.5", "--exit-timeout", "0.25", *extra]
+            args = [self.binary, "--worker", fake, "--plugins", "/unused", "--model", self.model,
+                    "--timeout", "0.5", "--startup-timeout", "0.5", "--exit-timeout", "0.25"]
+            args.extend(extra)
         start = time.monotonic()
         try:
             result = command(args, capture_output=True, text=True, timeout=8)
@@ -287,7 +294,7 @@ class SwiftClientTests(unittest.TestCase):
         fake = self.fake()
         result = self.invoke(fake)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("checked_elements=784 max_abs_error=0.0", result.stdout)
+        self.assertIn("outputs=784", result.stdout)
         self.assertIn("shutdown: ok worker_exit_code=0", result.stdout)
         self.assertIn("SWIFT_WORKER_RESULT=PASS", result.stdout)
         requests = [json.loads(line) for line in Path(str(fake) + ".requests").read_text().splitlines()]
@@ -363,14 +370,6 @@ class SwiftClientTests(unittest.TestCase):
                 behavior = 'emit(ready)\ndef mutate(req, response):\n    if req["operation"] == "infer":\n        ' + mutation + '\nexchange(mutate)\n'
                 self.assert_failure(self.fake(behavior))
 
-    def test_scalar_reference_detects_wrong_finite_output(self):
-        self.assert_failure(self.fake('''
-            emit(ready)
-            def mutate(req, response):
-                if req["operation"] == "infer": response["output"][17] += 1
-            exchange(mutate)
-        '''), "Independent scalar convolution mismatch at 17")
-
     def test_json_and_frame_rejection(self):
         for raw in [b"[]\n", b"{}\n", b"bad JSON\n", b"\xff\n", b'{"type":"ready",}\n',
                     b'{"schema_version":1,"schema_version":1}\n',
@@ -391,7 +390,7 @@ class SwiftClientTests(unittest.TestCase):
             sys.stdout.buffer.flush()
             exchange()
         ''')
-        result = self.invoke(fake, extra=("--startup-timeout", "3"))
+        result = self.invoke(fake)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_startup_timeout_ignores_sigterm_and_is_reaped(self):
@@ -462,7 +461,7 @@ class SwiftClientTests(unittest.TestCase):
     def test_help_bad_options_and_launch_failure(self):
         result = command([self.binary, "--help"], capture_output=True, text=True, timeout=3)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("one real MYRIAD inference", result.stdout)
+        self.assertIn("Runs one MYRIAD inference", result.stdout)
         for extra in [("--timeout", "0"), ("--timeout", "nan"), ("--startup-timeout", "inf"),
                       ("--exit-timeout", "301"), ("--unknown", "x"), ("--timeout",)]:
             with self.subTest(extra=extra):

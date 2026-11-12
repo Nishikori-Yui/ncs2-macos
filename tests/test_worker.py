@@ -13,13 +13,14 @@ sys.path.insert(0, str(ROOT))
 from ncs2_client import NCS2Worker, NCS2WorkerError, NCS2Timeout
 WORKER = ROOT / "build-arm64/ncs2_worker"
 CASE = "conv_1x1x8x8"
+MODEL = Path("/unused/conv_1x1x8x8.xml")
 
 def msg(operation="health", **kwargs):
     return {"schema_version": 1, "request_id": "test", "operation": operation, **kwargs}
 
 class ProtocolTests(unittest.TestCase):
     def exchange(self, rows):
-        result = subprocess.run([str(WORKER), "--validate-only", CASE],
+        result = subprocess.run([str(WORKER), "--validate-only"],
                                 input="\n".join(rows+[json.dumps(msg("shutdown"))])+"\n",
                                 text=True, capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -29,7 +30,7 @@ class ProtocolTests(unittest.TestCase):
         return values[1:-1]
 
     def test_valid_whitespace_unicode_and_explicit_tensor(self):
-        tensor = {"dtype": "f32", "shape": [1,1,8,8], "data": [i/16 for i in range(64)]}
+        tensor = {"dtype": "f32", "shape": [1,4], "data": [i/16 for i in range(4)]}
         request = msg("infer", input=tensor)
         request["request_id"] = '中文🤖"\\\n'
         result = self.exchange([json.dumps(request, ensure_ascii=True),json.dumps(request, ensure_ascii=False)])
@@ -45,11 +46,11 @@ class ProtocolTests(unittest.TestCase):
             '{"x":-}', '{"x":1.}', '{"x":+1}', '{"x":0x3}',
             json.dumps(msg(schema_version=2)), json.dumps(msg(schema_version=True)),
             json.dumps(msg(request_id="")), json.dumps(msg("unknown")), json.dumps(msg(foo="bar")),
-            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,1,8,8],"data":[0]*63})),
-            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,1,8,8],"data":[True]*64})),
-            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,1,8,8],"data":[1e300]*64})),
-            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,1,8,9],"data":[0]*64})),
-            json.dumps(msg("infer", input={"dtype":"i8","shape":[1,1,8,8],"data":[0]*64})),
+            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,4],"data":[0]*3})),
+            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,4],"data":[True]*4})),
+            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,4],"data":[1e300]*4})),
+            json.dumps(msg("infer", input={"dtype":"f32","shape":[1,5],"data":[0]*4})),
+            json.dumps(msg("infer", input={"dtype":"i8","shape":[1,4],"data":[0]*4})),
             "["*10+"0"+"]"*10, " "*1048577,
         ]
         for row in invalid:
@@ -75,14 +76,14 @@ ready={"schema_version":1,"type":"ready","case":"conv_1x1x8x8","device":"MYRIAD"
         with tempfile.TemporaryDirectory() as d:
             path = self.fake(d, 'time.sleep(10)\n')
             with self.assertRaises(NCS2Timeout):
-                NCS2Worker(path, Path("unused"), CASE, startup_timeout=.15)
+                NCS2Worker(path, Path("unused"), MODEL, startup_timeout=.15)
 
     def test_request_timeout_and_malformed_output_reap(self):
         for behavior, error in [('time.sleep(10)',NCS2Timeout), ('print("bad JSON", flush=True)',NCS2WorkerError),
                                 ('print(json.dumps({"schema_version":1,"request_id":"wrong","status":"ok"}),flush=True)',NCS2WorkerError)]:
             with self.subTest(behavior=behavior),tempfile.TemporaryDirectory() as d:
                 path=self.fake(d,'print(json.dumps(ready),flush=True)\nsys.stdin.readline()\n'+behavior+'\n')
-                client=NCS2Worker(path,Path("unused"),CASE,timeout=.15)
+                client=NCS2Worker(path,Path("unused"),MODEL,timeout=.15)
                 with self.assertRaises(error):
                     client.health()
                 self.assertIsNotNone(client.process.poll())
@@ -103,7 +104,7 @@ for line in sys.stdin:
     if req["operation"]=="shutdown":break
 '''
             path=self.fake(d,behavior)
-            with NCS2Worker(path,Path("unused"),CASE) as client:
+            with NCS2Worker(path,Path("unused"),MODEL) as client:
                 self.assertEqual(len(client.infer([0.0]*64)["output"]),36)
                 with self.assertRaises(ValueError):client.infer([float("nan")]*64)
                 self.assertEqual(client.health()["status"],"ok")
@@ -127,7 +128,7 @@ for line in sys.stdin:
         """ + (ending or "break") + "\n")
 
     def client(self, path, **kwargs):
-        client=NCS2Worker(path,Path("unused"),CASE,**kwargs)
+        client=NCS2Worker(path,Path("unused"),MODEL,**kwargs)
         self.addCleanup(client.close,force=True)
         return client
 
@@ -206,7 +207,7 @@ for line in sys.stdin:
             path=self.responder(d)
             path.write_text(path.read_text().replace('print(json.dumps(ready),flush=True)',
                 'assert sys.argv[-2:]==["--model","/unused/custom.xml"]\nready["case"]="custom"\nprint("raw worker log",file=sys.stderr,flush=True)\nprint(json.dumps(ready),flush=True)'))
-            with NCS2Worker(path,Path('unused'),model=Path('/unused/custom.xml'),stderr=sink) as client:
+            with NCS2Worker(path,Path('unused'),Path('/unused/custom.xml'),stderr=sink) as client:
                 self.assertEqual(client.health()['case'],'custom')
             self.assertFalse(sink.closed)
             sink.seek(0)
@@ -280,7 +281,7 @@ for line in sys.stdin:
     def test_nonobject_ready_tensor_is_protocol_error(self):
         with tempfile.TemporaryDirectory() as d:
             path=self.fake(d,'ready["input"]=[]\nprint(json.dumps(ready),flush=True)\ntime.sleep(10)\n')
-            with self.assertRaises(NCS2WorkerError):NCS2Worker(path,Path('unused'),CASE)
+            with self.assertRaises(NCS2WorkerError):NCS2Worker(path,Path('unused'),MODEL)
 
 class OversizedIdentityTests(unittest.TestCase):
     exchange = ProtocolTests.exchange

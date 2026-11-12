@@ -29,7 +29,7 @@ def display_install_name(name, system):
 def audit():
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise RuntimeError('Native arm64 macOS is required.')
-    pending = [PROBE, ROOT / 'build-arm64/ncs2_lab', ROOT / 'build-arm64/ncs2_perf', ROOT / 'build-arm64/ncs2_worker', ROOT / 'build-arm64/ncs2_apps', ROOT / 'build-arm64/ncs2_multi_io', ROOT / 'build-arm64/ncs2_multi_worker', RUNTIME / 'libopenvino.dylib', RUNTIME / 'libopenvino_intel_myriad_plugin.so',
+    pending = [PROBE, ROOT / 'build-arm64/ncs2_worker', ROOT / 'build-arm64/ncs2_multi_worker', RUNTIME / 'libopenvino.dylib', RUNTIME / 'libopenvino_intel_myriad_plugin.so',
                RUNTIME / 'libopenvino_ir_frontend.dylib']
     # Swift examples are an optional build; audit every installed example.
     pending.extend(path for name in ('NCS2WorkerClient', 'NCS2MultiWorkerClient')

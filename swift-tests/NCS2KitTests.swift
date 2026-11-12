@@ -7,14 +7,14 @@ final class NCS2KitTests: XCTestCase {
         XCTAssertEqual(try descriptor.elementCount(), 8)
     }
 
-    func testSchemaOneDescriptorConstantsArePublic() {
-        XCTAssertEqual(NCS2WorkerClient.inputDescriptor.shape, [1, 3, 16, 16])
-        XCTAssertEqual(NCS2WorkerClient.outputDescriptor.shape, [1, 4, 14, 14])
+    func testSchemaOneDescriptorCountsElements() throws {
+        let descriptor = NCS2TensorDescriptor(dtype: "f32", shape: [1, 3, 16, 16])
+        XCTAssertEqual(try descriptor.elementCount(), 768)
     }
 
     func testClientInitializersRejectInvalidTimeoutBeforeLaunching() {
         let unused = URL(fileURLWithPath: "/unused")
-        XCTAssertThrowsError(try NCS2WorkerClient(worker: unused, plugins: unused, timeout: 301))
+        XCTAssertThrowsError(try NCS2WorkerClient(worker: unused, plugins: unused, model: unused, timeout: 301))
         XCTAssertThrowsError(try NCS2MultiWorkerClient(
             worker: unused, plugins: unused, model: unused, startupTimeout: 301
         ))
