@@ -51,4 +51,4 @@ USB access can differ between a sandboxed process and a normal macOS terminal. R
 
 ## Scope
 
-The public toolchain covers dependency bootstrap, native builds, USB descriptor reading, MYRIAD discovery, a deterministic ReLU smoke test and benchmark, schema-1 and schema-2 workers, Python/Swift clients, and architecture checks. Reproduction suites, soak tests, performance laboratories, lifecycle tracing, and application experiments are maintained outside the public tree.
+The public toolchain covers dependency bootstrap, native builds, USB descriptor reading, MYRIAD discovery, a deterministic ReLU smoke test and benchmark, schema-1 and schema-2 workers, Python/Swift clients, and architecture checks. Reproduction suites, soak tests, performance laboratories, lifecycle tracing, and application experiments are excluded from the supported public toolchain.

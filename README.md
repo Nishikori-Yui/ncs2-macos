@@ -89,7 +89,7 @@ The command compiles the example executables, builds the package, and runs its t
 - `scripts/`: bootstrap, build, architecture audit, and source export.
 - `docs/TOOLCHAIN.md`: runtime design and build details.
 
-The complete local operation notebook and experiment outputs are kept outside the public tree. Reproduction, soak, performance, USB lifecycle, and application experiments were used to validate the toolkit and remain in local history; they are not required to build or use it.
+Machine-specific operation records and experiment outputs stay in the local ignored notebook. The public source tree focuses on the build, device access, inference, and client workflows; optional research utilities are excluded.
 
 ## License and third-party material
 
