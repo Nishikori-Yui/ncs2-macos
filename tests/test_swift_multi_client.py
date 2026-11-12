@@ -1,5 +1,4 @@
 """Native arm64 Swift schema-2 tests with synthetic workers; never opens USB."""
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -204,7 +203,8 @@ class SwiftMultiClientTests(unittest.TestCase):
                 self.assertEqual(report['SWIFT_MULTI_WORKER_RESULT'],'PASS')
                 self.assertEqual(report['checked_elements'],8)
                 self.assertEqual(report['worker_exit_code'],0)
-                self.assertEqual(report['model_sha256'],hashlib.sha256(self.model.read_bytes()).hexdigest())
+                self.assertEqual(report['input_shapes'],[[1,4],[1,4]] if layout=='add-sub' else
+                                 ([[1,3],[1,5]] if layout=='concat-unequal' else [[1,8]]))
                 rows = [json.loads(row) for row in Path(str(worker)+'.requests').read_text().splitlines()]
                 self.assertEqual([row['operation'] for row in rows],['health','infer','health','shutdown'])
                 self.assertEqual(len({row['request_id'] for row in rows}),len(rows))

@@ -1,6 +1,5 @@
 import Foundation
 import Darwin
-import CryptoKit
 
 // Build with NCS2WorkerClient.swift and -D NCS2_CLIENT_LIBRARY to share its
 // bounded synchronous transport. Define NCS2_MULTI_CLIENT_LIBRARY too when
@@ -321,10 +320,6 @@ enum NCS2MultiWorkerDemo {
             index += 2
         }
         guard let model else { throw NCS2ClientError("--model is required") }
-        // Read/hash the model inputs before launching anything; the worker owns IR parsing.
-        let modelHash = SHA256.hash(data: try Data(contentsOf: model)).map { String(format: "%02x", $0) }.joined()
-        let weights = model.deletingPathExtension().appendingPathExtension("bin")
-        let weightsHash = SHA256.hash(data: try Data(contentsOf: weights)).map { String(format: "%02x", $0) }.joined()
         let client = try NCS2MultiWorkerClient(worker: worker, plugins: plugins, model: model,
                                              timeout: timeout, startupTimeout: startup, exitTimeout: exitTimeout)
         defer { try? client.close() }
@@ -342,7 +337,7 @@ enum NCS2MultiWorkerDemo {
             "SWIFT_MULTI_WORKER_RESULT": "PASS", "schema_version": 2, "device": "MYRIAD",
             "case": ready.case, "input_shapes": ready.inputs.map(\.shape),
             "output_shapes": ready.outputs.map(\.shape), "checked_elements": checked,
-            "worker_exit_code": Int(status), "model_sha256": modelHash, "weights_sha256": weightsHash,
+            "worker_exit_code": Int(status),
         ]
         let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
         print(String(decoding: data, as: UTF8.self))
