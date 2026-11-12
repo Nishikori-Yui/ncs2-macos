@@ -46,14 +46,26 @@ On the local NCS2, each schema-2 topology was run for 31 requests (248 checked o
 
 ### Swift schema 2
 
-Build the two native arm64 Swift examples with a Swift 6 compiler:
+`Package.swift` exposes the zero-dependency `NCS2Kit` library product for native macOS arm64 (deployment target macOS 13). Build and test the package and compile both native arm64 examples with Swift 6:
 
     ./ncs2 build-swift
     ./ncs2_log_run.sh Swift-multi-demo build-arm64/NCS2MultiWorkerClient --case concat-unequal --model results/concat-fixture/multi_concat_unequal.xml
 
+Downstream Swift packages can use this repository as a local package dependency:
+
+    dependencies: [.package(path: "../ncs2-macos")],
+    targets: [
+        .executableTarget(
+            name: "ExampleApp",
+            dependencies: [.product(name: "NCS2Kit", package: "ncs2-macos")]
+        )
+    ]
+
+Then import the product with `import NCS2Kit`. A schema-2 client is created with the worker executable, plugin configuration and model XML URLs. The package launches that worker as a separate process; build/install the compatible worker and runtime independently. No runtime binary, firmware, or libusb is bundled.
+
 Use `--case add-sub|concat-unequal|split-halves` to select the demo's scalar reference. The default is add-sub and 31 requests. `--worker PATH` and `--plugins PATH` support a local copied runtime; defaults assume the repository working directory. `--timeout`, `--startup-timeout` and `--exit-timeout` bound request I/O, readiness and normal exit; each accepts finite seconds in (0,300]. The reusable `NCS2MultiWorkerClient` accepts any model satisfying the worker's static f32 port contract, while the demo only verifies the three named fixtures.
 
-To reuse the client, compile `examples/NCS2WorkerClient.swift` and `examples/NCS2MultiWorkerClient.swift` with both `-D NCS2_CLIENT_LIBRARY` and `-D NCS2_MULTI_CLIENT_LIBRARY`, then supply your own entry point. The first file provides the shared bounded JSON-lines transport and duplicate-key decoder. The synchronous API is:
+The library exports the schema-1 and schema-2 clients, their ready/output descriptors, inference result, and error types. The synchronous API is:
 
     let client = try NCS2MultiWorkerClient(worker: workerURL, plugins: pluginsURL, model: modelURL)
     defer { try? client.close() }

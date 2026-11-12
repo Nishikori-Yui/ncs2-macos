@@ -16,3 +16,13 @@ for binary in "$BUILD_DIR/NCS2WorkerClient" "$BUILD_DIR/NCS2MultiWorkerClient"; 
   [[ "$(lipo -archs "$binary")" == arm64 ]] || { print -u2 -- "Not pure arm64: $binary"; exit 1; }
   file "$binary"
 done
+package_args=(--package-path "$ROOT_DIR" --scratch-path "$BUILD_DIR/swift-package"
+              --triple arm64-apple-macosx13.0)
+xcrun swift build "${package_args[@]}" --configuration release --product NCS2Kit
+release_bin="$(xcrun swift build "${package_args[@]}" --configuration release --show-bin-path)"
+library="$release_bin/libNCS2Kit.a"
+[[ -f "$library" && "$(lipo -archs "$library")" == arm64 ]] || {
+  print -u2 -- "NCS2Kit must be a pure arm64 static library: $library"; exit 1
+}
+file "$library"
+xcrun swift test "${package_args[@]}"

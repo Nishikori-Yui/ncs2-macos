@@ -67,7 +67,7 @@
 
 ### 当前进度口径与剩余项
 
-按六阶段交付项粗估，本机可用原型约 95%；包含第二台 Mac 验收、更广实验范围和可选二进制发行准备的整体目标约 85%。这是规划估算，不是测试覆盖率或已测量工时。
+按六阶段交付项粗估，本机可用原型约 96%；包含第二台 Mac 验收、更广实验范围和可选二进制发行准备的整体目标约 86%。这是规划估算，不是测试覆盖率或已测量工时。
 
 当前 Swift 批次已通过整合回归和实机验证；后续按以下项收尾：
 
@@ -76,3 +76,10 @@
 3. 如果决定发布编译产物，再完成固件/runtime 再分发审查、Developer ID 签名、公证和搬移 runtime 的发行检查；源码 MIT 许可不覆盖这些第三方材料。
 
 本机可执行的收尾预计分 2–3 批推进。跨设备和发布决策依赖额外条件，不估算总工时；不把新增任意模型或算子作为无限延长首版收尾的前提。
+
+### SwiftPM NCS2Kit（2026-11-12）
+
+- 新增无第三方 package dependency 的 SwiftPM library product `NCS2Kit`，部署目标 macOS 13，限制 native arm64。它复用已验证的 Swift worker transport 和 schema 1/2 客户端，不打包 OpenVINO、libusb、固件或 worker binary。
+- 公开 schema 1/2 客户端、ready/output descriptor、tensor descriptor、推理结果和错误类型。不可变值模型遵守 Swift 6 `Sendable`；持有 `Process` 与可变 pipe 状态的 client 类保持非 `Sendable`，要求每实例单线程调用。
+- `./ncs2 build-swift` 同时构建两个 arm64 demo、release library product 并执行 SwiftPM 测试；demo 和 `libNCS2Kit.a` 均经 `lipo` 确认为 arm64，4 项 package API 测试通过。既有 synthetic protocol 测试分别为 schema 1 19 项、schema 2 12 项；源码导出回归 31 项通过，完整非硬件回归 167 项通过。完整命令记录在本轮开发日志。
+- SwiftPM target 明确复用 `examples/` 里的两份实现，并通过 package-only defines 关闭 demo 入口，避免复制协议代码。公开候选清单已覆盖 `Package.swift` 和 `swift-tests/NCS2KitTests.swift`。

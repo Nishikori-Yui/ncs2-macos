@@ -13,12 +13,12 @@ The launcher logs commands even for `--check`. To validate without writing any l
 
 ## Selection and validation
 
-The exporter defines `REQUIRED_FILES` explicitly: root documentation, lock file, launchers, Python clients, C++ sources and headers, current command scripts and their helper modules, the Swift example, this guide, and focused tests. Missing required files or source directories fail the export. Maintain this inventory when adding or removing command dependencies; it is not automatic dependency discovery.
+The exporter defines `REQUIRED_FILES` explicitly: root documentation, lock file, launchers, Python clients, C++ sources and headers, current command scripts and their helper modules, the SwiftPM manifest, Swift examples and package tests, this guide, and focused tests. Missing required files or source directories fail the export. Maintain this inventory when adding or removing command dependencies; it is not automatic dependency discovery.
 
 Additional selection is shallow and uses both location and suffix:
 
-- Explicit root files, plus optional root `LICENSE` and root `ncs2*.cpp` / `ncs2*.hpp`.
-- Immediate `docs/*.md`, `scripts/*.py`, `scripts/*.sh`, `tests/test_*.py`, and `examples/*.swift` files.
+- Explicit root files including `Package.swift`, plus optional root `LICENSE` and root `ncs2*.cpp` / `ncs2*.hpp`.
+- Immediate `docs/*.md`, `scripts/*.py`, `scripts/*.sh`, `tests/test_*.py`, `examples/*.swift`, and `swift-tests/*.swift` files.
 - The exact nested path `.github/workflows/native-arm64.yml`. Other workflow/YAML files remain excluded; each intermediate directory has no-follow traversal and exact-tree verification.
 - General source suffixes are restricted to `.md`, `.json`, `.py`, `.sh`, `.cpp`, `.hpp`, `.swift`; the exact named workflow path additionally permits `.yml`. Only named root exceptions may lack those suffixes.
 

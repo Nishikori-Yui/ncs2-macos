@@ -7,12 +7,18 @@ import CryptoKit
 // supplying another @main. See ./ncs2 build-swift and docs/WORKER_API.md.
 // Confine each client to one calling thread. The owned worker must not fork.
 
-struct NCS2MultiTensorDescriptor: Codable, Equatable {
-    let index: Int
-    let dtype: String
-    let shape: [Int]
+public struct NCS2MultiTensorDescriptor: Codable, Equatable, Sendable {
+    public let index: Int
+    public let dtype: String
+    public let shape: [Int]
 
-    func elementCount() throws -> Int {
+    public init(index: Int, dtype: String, shape: [Int]) {
+        self.index = index
+        self.dtype = dtype
+        self.shape = shape
+    }
+
+    public func elementCount() throws -> Int {
         guard dtype == "f32", !shape.isEmpty, shape.count <= 8 else {
             throw NCS2ClientError("Invalid tensor dtype or rank")
         }
@@ -27,21 +33,21 @@ struct NCS2MultiTensorDescriptor: Codable, Equatable {
     }
 }
 
-struct NCS2MultiReady: Decodable {
-    let schema_version: Int
-    let type: String
-    let `case`: String
-    let device: String
-    let validation_only: Bool
-    let inputs: [NCS2MultiTensorDescriptor]
-    let outputs: [NCS2MultiTensorDescriptor]
+public struct NCS2MultiReady: Decodable, Sendable {
+    public let schema_version: Int
+    public let type: String
+    public let `case`: String
+    public let device: String
+    public let validation_only: Bool
+    public let inputs: [NCS2MultiTensorDescriptor]
+    public let outputs: [NCS2MultiTensorDescriptor]
 }
 
-struct NCS2MultiOutput: Decodable {
-    let index: Int
-    let dtype: String
-    let shape: [Int]
-    let data: [Double]
+public struct NCS2MultiOutput: Decodable, Sendable {
+    public let index: Int
+    public let dtype: String
+    public let shape: [Int]
+    public let data: [Double]
 }
 
 private struct NCS2MultiResponse: Decodable {
@@ -57,7 +63,9 @@ private struct NCS2MultiResponse: Decodable {
     let error: String?
 }
 
-final class NCS2MultiWorkerClient {
+/// Synchronous schema-2 client for static f32 multi-input/output IR.
+/// Confine each instance to one calling thread; it owns one worker process.
+public final class NCS2MultiWorkerClient {
     private let process = Process()
     private var pipe: JSONLinePipe?
     private var launched = false
@@ -66,10 +74,10 @@ final class NCS2MultiWorkerClient {
     private let caseID: String
     private let timeout: TimeInterval
     private let exitTimeout: TimeInterval
-    private(set) var ready: NCS2MultiReady?
+    public private(set) var ready: NCS2MultiReady?
 
-    init(worker: URL, plugins: URL, model: URL, timeout: TimeInterval = 15,
-         startupTimeout: TimeInterval = 30, exitTimeout: TimeInterval = 3) throws {
+    public init(worker: URL, plugins: URL, model: URL, timeout: TimeInterval = 15,
+                startupTimeout: TimeInterval = 30, exitTimeout: TimeInterval = 3) throws {
         _ = try PipeDeadline(seconds: timeout)
         _ = try PipeDeadline(seconds: startupTimeout)
         _ = try PipeDeadline(seconds: exitTimeout)
@@ -138,7 +146,7 @@ final class NCS2MultiWorkerClient {
     }
 
     // Idempotent abort/deinit cleanup; shutdown() provides the normal handshake.
-    func close() throws {
+    public func close() throws {
         pipe?.close()
         guard launched, process.isRunning else { return }
         if Darwin.kill(process.processIdentifier, SIGTERM) != 0, errno != ESRCH {
@@ -206,7 +214,7 @@ final class NCS2MultiWorkerClient {
     }
 
     @discardableResult
-    func health() throws -> Int {
+    public func health() throws -> Int {
         let value = try request("health")
         guard value.hardware_executed == false, value.completed == completed else {
             throw cleaningUp(NCS2ClientError("Invalid multi-worker health counter or execution flag"))
@@ -214,7 +222,7 @@ final class NCS2MultiWorkerClient {
         return completed
     }
 
-    func infer(_ values: [[Float]]) throws -> [NCS2MultiOutput] {
+    public func infer(_ values: [[Float]]) throws -> [NCS2MultiOutput] {
         guard let ready, values.count == ready.inputs.count else {
             throw NCS2ClientError("Expected one value sequence per input tensor")
         }
@@ -246,7 +254,7 @@ final class NCS2MultiWorkerClient {
     }
 
     @discardableResult
-    func shutdown() throws -> Int32 {
+    public func shutdown() throws -> Int32 {
         do {
             let value = try request("shutdown")
             guard value.hardware_executed == false, value.completed == completed else {

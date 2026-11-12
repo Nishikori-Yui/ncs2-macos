@@ -34,7 +34,7 @@ Prerequisites: native arm64 macOS, Xcode/Command Line Tools (`clang++`, `git`, `
 ./ncs2 reproduce       # Fresh source snapshot + online inputs/build/offline tests; no USB
 ./ncs2 fetch --offline # Verify the existing local source/cache without network
 ./ncs2 build           # Native arm64 runtime + MYRIAD + IR frontend + probe
-./ncs2 build-swift     # Optional Swift 6 schema-1/schema-2 clients; no USB
+./ncs2 build-swift     # SwiftPM NCS2Kit + tests and schema-1/schema-2 demos; no USB
 ./ncs2 check           # Recursive architecture check for non-system libraries
 ./ncs2 check --json    # Machine-readable architectures, dependency graph and SHA-256
 ./ncs2 usb             # Descriptor read; serial numbers hidden by default
@@ -78,6 +78,8 @@ This is an experimental source release under the MIT License for this repository
 All **20 IR fixtures** export and reload. A complete hardware run reported **19 passed on MYRIAD, 1 rejected at compilation**: standalone FakeQuantize is unsupported by this compiler. The default suite exits nonzero so this limitation remains visible. These are specific static graphs and shapes, not general operator compatibility claims. Every run creates a fresh results/ directory with IR files, artifact hashes, per-case logs, and a structured report. See docs/OPERATOR_SUITE.md and docs/USB_LIFECYCLE.md for details.
 
 The persistent worker protocols are documented in docs/WORKER_API.md. Schema 1 supports one input/output; schema 2 supports static f32 multi-input/output IR. Both have Python and Swift clients communicating with native arm64 workers. Hardware checks cover 2→2 add/subtract, unequal-shaped 2→1 concat, and 1→2 split; the Swift multi-tensor client independently verified 93 requests and 744 output elements on NCS2. These are specific graphs and shapes; arbitrary model compatibility is not implied. The full implementation status is tracked in docs/IMPLEMENTATION.md. USB lifecycle and XLink debug observations, repeated concurrency/preprocessing experiments, and typed JSON tensor workers are implemented. Camera-free application evidence is described in docs/APPLICATIONS.md. See docs/PERFORMANCE.md, docs/WORKER_API.md and docs/XLINK_DEBUG.md for measurement boundaries and supported scope.
+
+The native Swift package product is `NCS2Kit` (`import NCS2Kit`). It has no third-party package dependencies and requires macOS 13 or later on arm64. It launches the separately built local C++ worker over bounded JSON-lines pipes; it does not bundle OpenVINO, libusb, firmware, or worker binaries. The synchronous client instances are confined to one calling thread.
 
 ## Toolchain and repository artifacts
 

@@ -13,13 +13,13 @@ import Darwin
 // Define NCS2_CLIENT_LIBRARY to reuse the synchronous client without the demo.
 // Confine each client to one calling thread; no callbacks, tasks, or actors are used.
 
-struct NCS2ClientError: Error, CustomStringConvertible {
-    let description: String
-    init(_ description: String) { self.description = description }
+public struct NCS2ClientError: Error, CustomStringConvertible {
+    public let description: String
+    public init(_ description: String) { self.description = description }
 }
 
-struct NCS2RemoteError: Error, CustomStringConvertible {
-    let description: String
+public struct NCS2RemoteError: Error, CustomStringConvertible {
+    public let description: String
 }
 
 func systemError(_ operation: String) -> NCS2ClientError {
@@ -223,19 +223,24 @@ func decodeFrame<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
     return try decoder.decode(type, from: data)
 }
 
-struct NCS2TensorDescriptor: Codable, Equatable {
-    let dtype: String
-    let shape: [Int]
+public struct NCS2TensorDescriptor: Codable, Equatable, Sendable {
+    public let dtype: String
+    public let shape: [Int]
+
+    public init(dtype: String, shape: [Int]) {
+        self.dtype = dtype
+        self.shape = shape
+    }
 }
 
-struct NCS2Ready: Decodable {
-    let schema_version: Int
-    let type: String
-    let `case`: String
-    let device: String
-    let validation_only: Bool
-    let input: NCS2TensorDescriptor
-    let output: NCS2TensorDescriptor
+public struct NCS2Ready: Decodable, Sendable {
+    public let schema_version: Int
+    public let type: String
+    public let `case`: String
+    public let device: String
+    public let validation_only: Bool
+    public let input: NCS2TensorDescriptor
+    public let output: NCS2TensorDescriptor
 }
 
 struct NCS2Response: Decodable {
@@ -254,15 +259,17 @@ struct NCS2Response: Decodable {
     let error: String?
 }
 
-struct NCS2Inference {
-    let output: [Double]
-    let milliseconds: Double
+public struct NCS2Inference: Sendable {
+    public let output: [Double]
+    public let milliseconds: Double
 }
 
-final class NCS2WorkerClient {
-    static let caseID = "conv_1x3x16x16"
-    static let inputDescriptor = NCS2TensorDescriptor(dtype: "f32", shape: [1, 3, 16, 16])
-    static let outputDescriptor = NCS2TensorDescriptor(dtype: "f32", shape: [1, 4, 14, 14])
+/// Synchronous schema-1 client for the fixed convolution worker fixture.
+/// Confine each instance to one calling thread; it owns one worker process.
+public final class NCS2WorkerClient {
+    public static let caseID = "conv_1x3x16x16"
+    public static let inputDescriptor = NCS2TensorDescriptor(dtype: "f32", shape: [1, 3, 16, 16])
+    public static let outputDescriptor = NCS2TensorDescriptor(dtype: "f32", shape: [1, 4, 14, 14])
 
     private let process = Process()
     private var pipe: JSONLinePipe?
@@ -271,10 +278,10 @@ final class NCS2WorkerClient {
     private var completed = 0
     private let timeout: TimeInterval
     private let exitTimeout: TimeInterval
-    private(set) var ready: NCS2Ready?
+    public private(set) var ready: NCS2Ready?
 
-    init(worker: URL, plugins: URL, timeout: TimeInterval = 15,
-         startupTimeout: TimeInterval = 30, exitTimeout: TimeInterval = 3) throws {
+    public init(worker: URL, plugins: URL, timeout: TimeInterval = 15,
+                startupTimeout: TimeInterval = 30, exitTimeout: TimeInterval = 3) throws {
         // Validate every duration before spawning anything.
         _ = try PipeDeadline(seconds: timeout)
         _ = try PipeDeadline(seconds: startupTimeout)
@@ -331,7 +338,7 @@ final class NCS2WorkerClient {
 
     // Idempotent error/deinit cleanup. No unbounded waitUntilExit on a live child.
     // The worker is a single owned process; it must not daemonize or spawn descendants.
-    func close() throws {
+    public func close() throws {
         pipe?.close()
         guard launched, process.isRunning else { return }
         if Darwin.kill(process.processIdentifier, SIGTERM) != 0, errno != ESRCH {
@@ -400,7 +407,7 @@ final class NCS2WorkerClient {
     }
 
     @discardableResult
-    func health() throws -> Int {
+    public func health() throws -> Int {
         let response = try request("health")
         guard response.hardware_executed == false, response.completed == completed else {
             throw cleaningUp(NCS2ClientError("Invalid health response"))
@@ -408,7 +415,7 @@ final class NCS2WorkerClient {
         return completed
     }
 
-    func infer(_ values: [Float]) throws -> NCS2Inference {
+    public func infer(_ values: [Float]) throws -> NCS2Inference {
         guard values.count == 768, values.allSatisfy(\.isFinite) else {
             throw NCS2ClientError("Input must contain exactly 768 finite f32 values")
         }
@@ -424,7 +431,7 @@ final class NCS2WorkerClient {
     }
 
     @discardableResult
-    func shutdown() throws -> Int32 {
+    public func shutdown() throws -> Int32 {
         do {
             let response = try request("shutdown")
             guard response.hardware_executed == false, response.completed == completed else {
