@@ -3,6 +3,7 @@
 /vendor/
 /firmware-cache/
 /tmp/
+/.build/
 
 # Machine-specific experiment output.
 /ncs2_read_attempts.md
