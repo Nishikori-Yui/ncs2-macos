@@ -5,6 +5,7 @@
 仓库：[ncs2-macos](https://github.com/Nishikori-Yui/ncs2-macos)。只推送允许清单中的源码、脚本、测试和摘要文档，不建立二进制 release。
 
 - 根目录 `LICENSE` 和 [`docs/LICENSE_OPTIONS.md`](LICENSE_OPTIONS.md) 已记录 MIT。该许可证仅覆盖本项目原创源码，不覆盖 OpenVINO、libusb、Intel 固件或复制的 runtime。
+- MIT 更新已推送至 public `main`；GitHub API 将根许可证识别为 SPDX `MIT`。提交和源码候选哈希记录在本机 notebook；MIT 本身不代表二进制/固件发行获批。
 - 保留 `README.md`、`docs/`、`scripts/`、`ncs2`、`ncs2_log_run.sh`、C++/Python/Swift 源码、锁文件和小型合成 fixture。
 - 不提交 `vendor/`、`build-arm64/`、`firmware-cache/`、`results/`、`ncs2_read_attempts.md`、临时日志、USB 序列号或带绝对机器路径的输出。
 - 重新确认 OpenVINO 源码、子模块和固件的来源、许可证与是否允许再分发；来源盘点已记录在 [`docs/THIRD_PARTY_REVIEW.md`](THIRD_PARTY_REVIEW.md)，但源码构建成功不等于固件可以打包发布，固件再分发仍未放行。
