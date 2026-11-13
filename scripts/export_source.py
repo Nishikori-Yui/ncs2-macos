@@ -16,6 +16,7 @@ MANIFEST = 'SOURCE_MANIFEST.json'
 SOURCE_SUFFIXES = frozenset({'.md', '.json', '.py', '.sh', '.cpp', '.hpp', '.swift'})
 ROOT_FILES = frozenset({
     'README.md', 'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', '.gitignore',
+    'README.zh-CN.md',
     'toolchain.lock.json', 'ncs2', 'ncs2_log_run.sh', 'ncs2_client.py',
     'ncs2_multi_client.py', 'ncs2_async.py', 'read_ncs2_usb.py', 'Package.swift',
 })
@@ -34,7 +35,10 @@ REQUIRED_FILES = ROOT_FILES | frozenset({
     'examples/NCS2WorkerClient.swift', 'examples/NCS2MultiWorkerClient.swift',
     'examples/NCS2Runtime.swift', 'swift-tests/NCS2KitTests.swift', 'swift-tests/NCS2RuntimeTests.swift',
     'docs/SOURCE_EXPORT.md', 'docs/THIRD_PARTY_REVIEW.md', 'docs/TOOLCHAIN.md',
-    'docs/WORKER_API.md', 'docs/ASYNC_SDK.md', 'tests/test_async_sdk.py', 'tests/test_check_arm64.py', 'tests/test_export_source.py',
+    'docs/WORKER_API.md', 'docs/ASYNC_SDK.md', 'docs/TOOLCHAIN.zh-CN.md',
+    'docs/WORKER_API.zh-CN.md', 'docs/ASYNC_SDK.zh-CN.md',
+    'docs/SOURCE_EXPORT.zh-CN.md', 'docs/THIRD_PARTY_REVIEW.zh-CN.md',
+    'docs/SOURCE_EXPORT.md', 'tests/test_async_sdk.py', 'tests/test_check_arm64.py', 'tests/test_export_source.py',
     'tests/test_multi_worker.py', 'tests/test_swift_client.py',
     'tests/test_swift_multi_client.py', 'tests/test_usb_parser.py', 'tests/test_worker.py',
     'scripts/bootstrap.py', 'scripts/build_probe.sh', 'scripts/build_runtime.sh', 'scripts/build_swift_clients.sh',

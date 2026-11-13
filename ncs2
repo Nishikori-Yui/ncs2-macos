@@ -16,7 +16,7 @@ case "$action" in
   multi-worker) exec /bin/zsh "$logger" --stream "schema 2 多输入多输出 worker" "$ROOT_DIR/build-arm64/ncs2_multi_worker" "$ROOT_DIR/vendor/openvino-2022.3/bin/arm64/Release/plugins.xml" "$@" ;;
   list|smoke|bench) exec /bin/zsh "$logger" "MYRIAD $action" /bin/zsh "$ROOT_DIR/scripts/run_probe.sh" "$action" "$@" ;;
   help|--help|-h)
-    print -- "ncs2: native arm64 macOS experiments (commands append the local notebook)"
+    print -- "ncs2: NeuralStick Bridge native arm64 macOS toolkit (commands append the local notebook)"
     print -- "  fetch [--offline]  Fetch pinned inputs, or verify local files only"
     print -- "  build              Configure/build pinned runtime and probe"
     print -- "  build-probe        Recompile the native C++ tools"

@@ -1,4 +1,4 @@
-# Third-party review snapshot
+# NeuralStick Bridge third-party review snapshot
 
 This document records a source-level provenance review for the macOS NCS2
 toolkit. The repository's original source is licensed under MIT; this review

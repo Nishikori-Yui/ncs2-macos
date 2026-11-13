@@ -1,4 +1,4 @@
-# Local worker APIs
+# NeuralStick Bridge local worker APIs
 
 The native arm64 C++ workers own the pinned MYRIAD runtime and compiled graph. Python and Swift clients exchange UTF-8 JSON lines over pipes and do not load OpenVINO into their own processes. This is a local API, not a network service.
 

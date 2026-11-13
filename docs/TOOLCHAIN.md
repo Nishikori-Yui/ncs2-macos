@@ -1,4 +1,4 @@
-# macOS arm64 toolchain
+# NeuralStick Bridge macOS arm64 toolchain
 
 ## Design
 

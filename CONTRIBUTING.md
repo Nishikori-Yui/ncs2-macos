@@ -1,4 +1,8 @@
-# Contributing
+# Contributing to NeuralStick Bridge
+
+NeuralStick Bridge is the public project name. The `ncs2` command and
+`NCS2Kit` package names are compatibility-facing technical names and should
+not be renamed casually.
 
 Development targets native arm64 macOS. Keep Linux, virtual machines, containers, Rosetta, x86_64 runtimes, and camera integrations outside this repository.
 

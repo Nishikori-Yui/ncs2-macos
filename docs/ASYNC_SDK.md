@@ -1,4 +1,4 @@
-# Async application SDK
+# NeuralStick Bridge async application SDK
 
 The SDK adds an in-memory model registry and a bounded FIFO queue above the existing synchronous schema-1/2 clients. Python uses asyncio; Swift exposes actor-isolated APIs through NCS2Kit. Both launch the same arm64 workers and keep the pinned OpenVINO ABI outside the application.
 

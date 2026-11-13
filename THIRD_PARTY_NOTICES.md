@@ -1,6 +1,6 @@
 # Third-party provenance and publication boundary
 
-The original source in this repository is licensed under the MIT License; see
+The original source in the NeuralStick Bridge repository is licensed under the MIT License; see
 the root [`LICENSE`](LICENSE) file. That grant covers this project's original
 source only. No third-party binary or source tree is included in this
 repository, and the project license does not grant permission to redistribute

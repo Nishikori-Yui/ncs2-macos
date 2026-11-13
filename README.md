@@ -1,10 +1,26 @@
-# NCS2 macOS arm64 toolkit
+# NeuralStick Bridge
 
-A native macOS toolkit for Intel Neural Compute Stick 2 (NCS2). It builds the last OpenVINO release with MYRIAD support as an arm64 runtime and exposes the device through small command-line probes, persistent JSON workers, and Python/Swift clients.
+Native macOS arm64 tooling for Intel Neural Compute Stick 2.
+
+NeuralStick Bridge carries the NCS2's legacy MYRIAD runtime into current Apple Silicon applications. It builds the last OpenVINO release with MYRIAD support as an arm64 runtime and exposes the device through command-line probes, persistent JSON workers, and Python/Swift SDKs.
+
+[简体中文文档](README.zh-CN.md)
+
+The project name is **NeuralStick Bridge**. The `ncs2` command, `NCS2Kit` Swift package, and `ncs2_*` Python modules remain stable technical interfaces.
 
 The host process runs natively on Apple Silicon. The project does not use Linux, a VM, a container, Rosetta, or an x86_64 runtime. Camera integrations are out of scope.
 
 OpenVINO is pinned to **2022.3.2** because newer releases no longer ship the NCS2/MYRIAD plugin. Installing a current OpenVINO release will not discover the device; the native wrapper here provides the modern host-facing layer.
+
+## What this project provides
+
+- A native arm64 macOS build of the pinned OpenVINO 2022.3.2 MYRIAD runtime.
+- A process boundary that keeps the legacy OpenVINO ABI inside C++ workers.
+- Versioned schema 1 and schema 2 JSON-lines worker protocols.
+- Synchronous Python and Swift clients plus bounded async Python and Swift SDK facades.
+- Read-only USB descriptor inspection and recursive arm64 dependency auditing.
+
+The project targets application integration and device access. Reproduction suites, soak tests, performance laboratories, lifecycle tracing, and camera integrations remain outside the public toolchain.
 
 ## Requirements
 
@@ -30,6 +46,12 @@ The build scripts do not install system packages or require sudo.
 `fetch` downloads and verifies the pinned OpenVINO source and official firmware archives. They stay in ignored local directories. `build` produces the arm64 runtime, MYRIAD plugin, IR reader, and command-line probe. `check` recursively verifies that non-system Mach-O files are pure arm64.
 
 The local firmware is required to boot the device. It is not distributed by this repository, and the MIT license covers only this project's original source.
+
+## How it works
+
+Modern applications do not link the old OpenVINO ABI directly. A Python or Swift client starts a native C++ worker, the worker loads and compiles the IR model for `MYRIAD`, and the two processes exchange bounded JSON lines over stdin/stdout. The async SDK adds model registration, FIFO scheduling, task state, queue cancellation, retained results, and worker reuse above that protocol.
+
+The design keeps the public application layer current while leaving device-specific runtime and firmware handling local to the macOS toolchain.
 
 ## Inference
 
@@ -66,11 +88,11 @@ with NCS2Worker(
     print(worker.input_shape, worker.output_shape)
 ```
 
-See [Worker API](docs/WORKER_API.md) for the protocol and client examples.
+See [Worker API](docs/WORKER_API.md) for the protocol and client examples. The [Chinese Worker API guide](docs/WORKER_API.zh-CN.md) covers the same contract in Simplified Chinese.
 
 ## Async application SDK
 
-`ncs2_async.NCS2Runtime` and Swift `NCS2Runtime` add explicit model registration, async task handles, a bounded FIFO device queue, queued-task cancellation and retained results. They reuse the existing worker protocols and switch/reuse workers in queue order. See the [async SDK guide](docs/ASYNC_SDK.md) for examples and lifecycle contracts.
+`ncs2_async.NCS2Runtime` and Swift `NCS2Runtime` add explicit model registration, async task handles, a bounded FIFO device queue, queued-task cancellation and retained results. They reuse the existing worker protocols and switch/reuse workers in queue order. See the [async SDK guide](docs/ASYNC_SDK.md) and [Chinese async SDK guide](docs/ASYNC_SDK.zh-CN.md) for examples and lifecycle contracts.
 
 ## Swift
 
@@ -93,6 +115,7 @@ The command compiles the example executables, builds the package, and runs its t
 - `read_ncs2_usb.py`: read-only USB descriptor reader.
 - `scripts/`: bootstrap, build, architecture audit, and source export.
 - `docs/TOOLCHAIN.md`: runtime design and build details.
+- `README.zh-CN.md` and `docs/*.zh-CN.md`: Simplified Chinese documentation.
 
 Machine-specific operation records and experiment outputs stay in the local ignored notebook. The public source tree focuses on the build, device access, inference, and client workflows; optional research utilities are excluded.
 

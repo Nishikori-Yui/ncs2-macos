@@ -1,4 +1,4 @@
-# Source-only candidate export
+# NeuralStick Bridge source-only candidate export
 
 `./ncs2 source-export` creates a new directory under `dist/` containing the public source candidate, a manifest, and an inventory digest. It never publishes, initializes Git, selects a license, or accesses hardware. Use `--output PATH` for a new destination; an existing directory or file is never overwritten.
 
@@ -23,6 +23,7 @@ Additional selection is shallow:
 
 - Explicit root files, plus optional root `LICENSE` and root `ncs2*.cpp` / `ncs2*.hpp`.
 - Immediate `docs/*.md`, `scripts/*.py`, `scripts/*.sh`, `tests/test_*.py`, `examples/*.swift`, and `swift-tests/*.swift` files.
+- The root `README.zh-CN.md` and immediate `docs/*.zh-CN.md` Simplified Chinese documents.
 - Source suffixes are limited to `.md`, `.json`, `.py`, `.sh`, `.cpp`, `.hpp`, and `.swift`.
 
 Vendor trees, build outputs, firmware caches, runtime binaries, result directories, raw notebooks and logs, caches, nested source directories, and `.github` metadata are excluded. Maintain the inventory when adding or removing a core dependency; selection is not automatic dependency discovery.
