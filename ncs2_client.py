@@ -17,6 +17,8 @@ class NCS2Timeout(NCS2WorkerError):
     """A read/write deadline expired; the worker has been terminated."""
 class NCS2RemoteError(NCS2WorkerError):
     """A nonfatal request error; the worker remains usable."""
+class NCS2FatalError(NCS2WorkerError):
+    """A fatal inference response; the worker has been terminated."""
 
 def _unique_object(pairs):
     result = {}
@@ -144,8 +146,10 @@ class NCS2Worker:
                     or response.get("request_id") != request_id):
                 raise NCS2WorkerError("Worker response identity mismatch")
             if response.get("status") == "error":
+                if type(response.get("fatal")) is not bool or not isinstance(response.get("error"), str) or not response["error"]:
+                    raise NCS2WorkerError("Malformed worker error response")
                 if response.get("fatal") is not False:
-                    raise NCS2WorkerError(response.get("error", "Fatal worker error"))
+                    raise NCS2FatalError(response.get("error", "Fatal worker error"))
                 raise NCS2RemoteError(response.get("error", "Invalid request"))
             if response.get("status") != "ok":
                 raise NCS2WorkerError("Invalid response status")

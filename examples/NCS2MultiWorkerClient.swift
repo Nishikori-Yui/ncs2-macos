@@ -140,7 +140,8 @@ public final class NCS2MultiWorkerClient {
                 throw systemError("Wait for multi-worker exit")
             }
         }
-        process.waitUntilExit()
+        // Foundation has observed termination; avoid its unbounded run-loop
+        // drain in waitUntilExit when called from a serial I/O executor.
         return true
     }
 
@@ -199,7 +200,7 @@ public final class NCS2MultiWorkerClient {
                     throw NCS2ClientError("Malformed multi-worker error response")
                 }
                 if !fatal { throw NCS2RemoteError(description: message) }
-                throw NCS2ClientError("Fatal multi-worker error: \(message)")
+                throw NCS2ClientError("Fatal multi-worker error: \(message)", isFatalResponse: true)
             }
             guard value.status == "ok", value.case == caseID else {
                 throw NCS2ClientError("Multi-worker response status or case mismatch")

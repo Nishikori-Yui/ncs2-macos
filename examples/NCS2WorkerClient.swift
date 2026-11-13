@@ -12,7 +12,11 @@ import Darwin
 
 public struct NCS2ClientError: Error, CustomStringConvertible {
     public let description: String
-    public init(_ description: String) { self.description = description }
+    public let isFatalResponse: Bool
+    public init(_ description: String, isFatalResponse: Bool = false) {
+        self.description = description
+        self.isFatalResponse = isFatalResponse
+    }
 }
 
 public struct NCS2RemoteError: Error, CustomStringConvertible {
@@ -352,8 +356,9 @@ public final class NCS2WorkerClient {
                 throw systemError("Wait for worker exit")
             }
         }
-        // Foundation has observed/reaped the child; this call cannot wait on a running worker.
-        process.waitUntilExit()
+        // isRunning is cleared by Foundation's process monitor. Do not call
+        // waitUntilExit here: its run-loop drain can block a serial I/O executor
+        // even after termination was observed, defeating this bounded deadline.
         return true
     }
 
@@ -416,7 +421,7 @@ public final class NCS2WorkerClient {
                     throw NCS2ClientError("Malformed worker error response")
                 }
                 if !fatal { throw NCS2RemoteError(description: message) }
-                throw NCS2ClientError("Fatal worker error: \(message)")
+                throw NCS2ClientError("Fatal worker error: \(message)", isFatalResponse: true)
             }
             guard response.status == "ok", response.case == caseID else {
                 throw NCS2ClientError("Worker response status or case mismatch")

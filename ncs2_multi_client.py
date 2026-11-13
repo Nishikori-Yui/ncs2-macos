@@ -11,7 +11,7 @@ import threading
 import time
 import uuid
 
-from ncs2_client import NCS2WorkerError, NCS2Timeout, NCS2RemoteError, _finite_number, _json_float, _unique_object
+from ncs2_client import NCS2WorkerError, NCS2Timeout, NCS2RemoteError, NCS2FatalError, _finite_number, _json_float, _unique_object
 
 
 class NCS2MultiWorker:
@@ -131,8 +131,10 @@ class NCS2MultiWorker:
                     or response.get("request_id") != request_id):
                 raise NCS2WorkerError("Worker response identity mismatch")
             if response.get("status") == "error":
+                if type(response.get("fatal")) is not bool or not isinstance(response.get("error"), str) or not response["error"]:
+                    raise NCS2WorkerError("Malformed worker error response")
                 if response.get("fatal") is not False:
-                    raise NCS2WorkerError(response.get("error", "Fatal worker error"))
+                    raise NCS2FatalError(response.get("error", "Fatal worker error"))
                 raise NCS2RemoteError(response.get("error", "Invalid request"))
             if response.get("status") != "ok":
                 raise NCS2WorkerError("Invalid response status")

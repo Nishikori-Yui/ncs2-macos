@@ -2,6 +2,8 @@
 
 The native arm64 C++ workers own the pinned MYRIAD runtime and compiled graph. Python and Swift clients exchange UTF-8 JSON lines over pipes and do not load OpenVINO into their own processes. This is a local API, not a network service.
 
+Applications that need async model/task scheduling can use the [async SDK](ASYNC_SDK.md). The wire protocols below remain unchanged.
+
 ## Starting a worker
 
 ```sh

@@ -68,9 +68,13 @@ with NCS2Worker(
 
 See [Worker API](docs/WORKER_API.md) for the protocol and client examples.
 
+## Async application SDK
+
+`ncs2_async.NCS2Runtime` and Swift `NCS2Runtime` add explicit model registration, async task handles, a bounded FIFO device queue, queued-task cancellation and retained results. They reuse the existing worker protocols and switch/reuse workers in queue order. See the [async SDK guide](docs/ASYNC_SDK.md) for examples and lifecycle contracts.
+
 ## Swift
 
-`Package.swift` exposes `NCS2Kit`, a dependency-free SwiftPM library for macOS 13+ arm64. It provides synchronous clients for both worker schemas.
+`Package.swift` exposes `NCS2Kit`, a dependency-free SwiftPM library for macOS 13+ arm64. It provides synchronous clients for both worker schemas and an actor-based async application SDK.
 
 ```sh
 ./ncs2 build-swift
@@ -84,6 +88,7 @@ The command compiles the example executables, builds the package, and runs its t
 - `ncs2_openvino_probe.cpp`: device discovery, ReLU smoke test, and benchmark.
 - `ncs2_worker.cpp`, `ncs2_multi_worker.cpp`: persistent schema-1 and schema-2 workers.
 - `ncs2_client.py`, `ncs2_multi_client.py`: Python clients.
+- `ncs2_async.py`: asyncio model/task SDK and bounded device queue.
 - `examples/`: Swift clients and the `NCS2Kit` sources.
 - `read_ncs2_usb.py`: read-only USB descriptor reader.
 - `scripts/`: bootstrap, build, architecture audit, and source export.
