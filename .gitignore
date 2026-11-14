@@ -4,6 +4,8 @@
 /firmware-cache/
 /tmp/
 /.build/
+/.seecode/
+/artifacts/
 
 # Machine-specific experiment output.
 /ncs2_read_attempts.md
