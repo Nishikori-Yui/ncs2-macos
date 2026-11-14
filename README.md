@@ -4,9 +4,7 @@ Native macOS arm64 tooling for Intel Neural Compute Stick 2.
 
 NeuralStick Bridge carries the NCS2's legacy MYRIAD runtime into current Apple Silicon applications. It builds the last OpenVINO release with MYRIAD support as an arm64 runtime and exposes the device through command-line probes, persistent JSON workers, and Python/Swift SDKs.
 
-[简体中文文档](README.zh-CN.md)
-
-The project name is **NeuralStick Bridge**. The `ncs2` command, `NCS2Kit` Swift package, and `ncs2_*` Python modules remain stable technical interfaces.
+[Simplified Chinese documentation](README.zh-CN.md)
 
 The host process runs natively on Apple Silicon. The project does not use Linux, a VM, a container, Rosetta, or an x86_64 runtime. Camera integrations are out of scope.
 
@@ -88,11 +86,11 @@ with NCS2Worker(
     print(worker.input_shape, worker.output_shape)
 ```
 
-See [Worker API](docs/WORKER_API.md) for the protocol and client examples. The [Chinese Worker API guide](docs/WORKER_API.zh-CN.md) covers the same contract in Simplified Chinese.
+See [Worker API](docs/WORKER_API.md) for the protocol and client examples.
 
 ## Async application SDK
 
-`ncs2_async.NCS2Runtime` and Swift `NCS2Runtime` add explicit model registration, async task handles, a bounded FIFO device queue, queued-task cancellation and retained results. They reuse the existing worker protocols and switch/reuse workers in queue order. See the [async SDK guide](docs/ASYNC_SDK.md) and [Chinese async SDK guide](docs/ASYNC_SDK.zh-CN.md) for examples and lifecycle contracts.
+`ncs2_async.NCS2Runtime` and Swift `NCS2Runtime` add explicit model registration, async task handles, a bounded FIFO device queue, queued-task cancellation and retained results. They reuse the existing worker protocols and switch/reuse workers in queue order. See the [async SDK guide](docs/ASYNC_SDK.md) for examples and lifecycle contracts.
 
 ## Swift
 

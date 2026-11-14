@@ -6,8 +6,6 @@ NeuralStick Bridge 将 NCS2 已停止维护的 MYRIAD 运行时桥接到现代 m
 
 英文文档入口：[README.md](README.md)。
 
-项目对外名称是 **NeuralStick Bridge**。`ncs2` 命令、`NCS2Kit` Swift 包和 `ncs2_*` Python 模块作为稳定的技术接口保留。
-
 ## 项目提供的能力
 
 - 原生 arm64 macOS 版本的 OpenVINO 2022.3.2 MYRIAD 运行时构建流程。
@@ -60,10 +58,8 @@ schema 1 支持一个静态 f32 输入和一个静态 f32 输出。schema 2 支�
 
 参阅：
 
-- [Worker API（英文）](docs/WORKER_API.md)
-- [Worker API（简体中文）](docs/WORKER_API.zh-CN.md)
-- [异步 SDK（英文）](docs/ASYNC_SDK.md)
-- [异步 SDK（简体中文）](docs/ASYNC_SDK.zh-CN.md)
+- [Worker API](docs/WORKER_API.zh-CN.md)
+- [异步 SDK](docs/ASYNC_SDK.zh-CN.md)
 
 ## Swift 与 Python SDK
 
